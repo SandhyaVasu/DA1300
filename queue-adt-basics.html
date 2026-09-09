@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queue ADT: Linear &amp; Circular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --queue:#2f7a72;
+    --queue-soft:#d7ece8;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --queue:#4fa79c;
+      --queue-soft:#183330;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --queue:#4fa79c;
+    --queue-soft:#183330;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px; line-height:1.5; padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:74ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--queue); border-color:var(--queue); color:#eafaf7; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  /* ---- pool ---- */
+  .pool-card{ padding:18px 18px 20px; }
+  .pool-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:4px; }
+  .pool-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:14px; }
+  .pool{ display:flex; gap:8px; overflow-x:auto; padding-top:22px; padding-bottom:4px; min-height:44px; }
+  .pool-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); padding:8px 2px; }
+  .tile{
+    position:relative; flex:0 0 auto; width:44px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14.5px;
+    border-radius:7px; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    transition:opacity .22s, transform .22s, border-color .2s;
+  }
+  .tile.front{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+  .tile.leaving{ opacity:0; transform:translateY(10px) scale(.85); }
+  .tile .ptr{ position:absolute; bottom:100%; left:50%; transform:translateX(-50%) rotate(180deg); display:flex; flex-direction:column; align-items:center; gap:2px; opacity:0; transition:opacity .2s; }
+  .tile.front .ptr{ opacity:1; }
+  .tile .ptr svg{ color:var(--accent); }
+
+  .connector{ display:flex; align-items:center; justify-content:center; gap:8px; padding:2px 0 10px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; font-size:11.5px; }
+  .connector svg{ transition:transform .18s, color .18s; }
+  .connector.pulse svg{ transform:translateY(3px) scale(1.15); color:var(--accent); }
+
+  /* ---- dual view ---- */
+  .dual{ display:grid; grid-template-columns:1.15fr 1fr; gap:16px; align-items:stretch; }
+  @media (max-width:900px){ .dual{ grid-template-columns:1fr; } }
+  .view-card{ padding:18px 18px 20px; display:flex; flex-direction:column; align-items:center; gap:6px; transition:border-color .15s; }
+  .view-card.shake{ animation:shake .32s; }
+  @keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+  .view-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); align-self:flex-start; }
+  .view-sub{ font-size:11.5px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; align-self:flex-start; margin-top:-2px; margin-bottom:6px; }
+
+  /* linear */
+  .linear-scroll{ width:100%; overflow-x:auto; padding:36px 4px 34px; }
+  .linear-frame{ position:relative; width:410px; margin:0 auto; }
+  .linear-row{ display:flex; gap:6px; }
+  .lslot{
+    width:46px; height:46px; flex:0 0 auto;
+    border:1.5px dashed var(--border); border-radius:8px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:transparent; transition:background .25s, border-color .25s, transform .18s;
+  }
+  .lslot .idx{ font-family:"IBM Plex Mono",monospace; font-size:9.5px; color:var(--ink-faint); }
+  .lslot .val{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:14.5px; opacity:0; transition:opacity .15s; }
+  .lslot.filled{ border-style:solid; background:var(--queue-soft); border-color:var(--queue); }
+  .lslot.filled .val{ opacity:1; color:var(--queue); }
+  .lslot.pulse{ animation:pulse .32s ease-out; }
+  @keyframes pulse{ 0%{ transform:scale(1.16); } 100%{ transform:scale(1); } }
+  .lslot.popflash{ animation:popflash .3s ease-out; }
+  @keyframes popflash{ 0%{ transform:scale(1.14); box-shadow:0 0 0 3px var(--accent-soft); } 100%{ transform:scale(1); box-shadow:none; } }
+
+  .lin-ptr{ position:absolute; left:0; width:46px; display:flex; flex-direction:column; align-items:center; gap:2px; transition:transform .32s cubic-bezier(.4,0,.2,1), opacity .2s; }
+  .lin-ptr.front{ top:-30px; color:var(--queue); }
+  .lin-ptr.rear{ bottom:-30px; color:var(--accent); flex-direction:column-reverse; }
+  .lin-ptr .lbl{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; }
+  .lin-ptr svg.up{ transform:rotate(0deg); }
+  .lin-ptr svg.down{ transform:rotate(180deg); }
+
+  .wrap-note{ font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--accent); opacity:0; transition:opacity .2s; margin-top:4px; }
+  .wrap-note.show{ opacity:1; }
+
+  /* circular */
+  .ring-wrap{ width:100%; display:flex; justify-content:center; }
+  svg.ring{ width:100%; max-width:340px; height:auto; }
+  .ccell{ fill:transparent; stroke:var(--border); stroke-width:1.5px; stroke-dasharray:4 3; transition:fill .25s, stroke .25s, stroke-dasharray .1s; }
+  .ccell.filled{ fill:var(--queue-soft); stroke:var(--queue); stroke-dasharray:none; }
+  .cidx{ font-family:"IBM Plex Mono",monospace; font-size:9px; fill:var(--ink-faint); }
+  .cval{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:14px; fill:var(--queue); opacity:0; transition:opacity .15s; }
+  .cval.show{ opacity:1; }
+  .ccell.pulse{ animation:cpulse .32s ease-out; transform-box:fill-box; transform-origin:center; }
+  @keyframes cpulse{ 0%{ transform:scale(1.18); } 100%{ transform:scale(1); } }
+  .cring{ fill:none; stroke:var(--border); stroke-width:1.5px; stroke-dasharray:3 4; }
+  .cptr-arrow{ transition:transform .38s cubic-bezier(.4,0,.2,1), opacity .25s; }
+  .cptr-label-g{ transition:transform .38s cubic-bezier(.4,0,.2,1), opacity .25s; }
+  .cptr-label{ font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; }
+  .csize{ font-family:"IBM Plex Mono",monospace; fill:var(--ink); }
+  .csize .n{ font-size:22px; font-weight:700; }
+  .csize .lbl{ font-size:9.5px; fill:var(--ink-faint); }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card, .code-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.enqueue .tag{ background:var(--accent); }
+  .log-entry.dequeue .tag{ background:var(--queue); }
+  .log-entry.front .tag{ background:var(--ink-soft); }
+  .log-entry.err{ color:var(--danger); font-weight:500; }
+  .log-entry.err .tag{ background:var(--danger); }
+  .log-entry.skip{ color:var(--ink-faint); }
+
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.7; color:var(--ink-soft); white-space:pre; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Queues</div>
+    <h1>The Queue ADT</h1>
+    <p class="lede">
+      A queue holds values in <strong>First-In-First-Out</strong> order: <code>enqueue(x)</code> adds at
+      the back, <code>dequeue()</code> removes and returns the front, and <code>front()</code> reads the
+      front without removing it. A fixed-capacity array queue reuses slots freed by <code>dequeue</code> by
+      wrapping the back pointer around to index 0 — the same queue is drawn twice below: once as a straight
+      array, once as the ring that array is really walking around.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnEnqueue" class="primary">Enqueue</button>
+    <button id="btnDequeue">Dequeue</button>
+    <button id="btnFront">Front</button>
+    <button id="btnReset" class="ghost">Reset</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card pool-card">
+    <div class="pool-label">Pool</div>
+    <div class="pool-sub">the leftmost value is next — <code>enqueue</code> takes it into the queue</div>
+    <div class="pool" id="pool"></div>
+  </div>
+
+  <div class="connector" id="connector">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v10M7 11 3 7M7 11l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    enqueue
+  </div>
+
+  <div class="dual">
+    <div class="card view-card" id="linearCard">
+      <div class="view-title">Linear view</div>
+      <div class="view-sub" id="linearSub">front = 0 &middot; rear = &minus; &middot; size 0 / 8</div>
+      <div class="linear-scroll">
+        <div class="linear-frame">
+          <div class="linear-row" id="linearRow"></div>
+          <div class="lin-ptr front" id="linFrontPtr">
+            <svg class="down" width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>
+            <span class="lbl">front</span>
+          </div>
+          <div class="lin-ptr rear" id="linRearPtr">
+            <svg class="up" width="12" height="8" viewBox="0 0 12 8"><polygon points="0,8 12,8 6,0" fill="currentColor"/></svg>
+            <span class="lbl">rear</span>
+          </div>
+        </div>
+      </div>
+      <div class="wrap-note" id="wrapNote">&#8635; data wraps from index 7 back to index 0</div>
+    </div>
+
+    <div class="card view-card" id="circularCard">
+      <div class="view-title">Circular view</div>
+      <div class="view-sub">the same array, walked as a ring</div>
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 380 380" role="img" aria-label="Circular buffer showing the queue's front and rear pointers moving around eight ring slots">
+          <circle class="cring" cx="190" cy="190" r="105"></circle>
+          <g id="ringCells"></g>
+          <g id="ringPointers"></g>
+          <text class="csize" text-anchor="middle" x="190" y="184"><tspan class="n" id="csizeN" x="190">0</tspan><tspan class="lbl" x="190" dy="16">size / 8</tspan></text>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">The three operations</div>
+      <pre class="code" id="pseudo"><span class="ln" data-k="enqueue">enqueue(x): avail = (front+size) % cap
+            data[avail] = x;  size += 1</span><span class="ln" data-k="dequeue">dequeue():  x = data[front]
+            front = (front+1) % cap;  size -= 1
+            return x</span><span class="ln" data-k="front">front():    return data[front]</span></pre>
+    </div>
+  </div>
+
+  <footer>Array-backed circular queue, capacity 8 &middot; adapted from ArrayQueue — Stacks &amp; Queues, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CAP = 8;
+  var POOL_SIZE = 14;
+  var CENTER = 190, R_CELL = 105, R_PTR = 135, R_LABEL = 152;
+
+  var poolEl = document.getElementById("pool");
+  var linearRowEl = document.getElementById("linearRow");
+  var linFrontPtr = document.getElementById("linFrontPtr");
+  var linRearPtr = document.getElementById("linRearPtr");
+  var linearSubEl = document.getElementById("linearSub");
+  var linearCardEl = document.getElementById("linearCard");
+  var circularCardEl = document.getElementById("circularCard");
+  var wrapNoteEl = document.getElementById("wrapNote");
+  var ringCellsEl = document.getElementById("ringCells");
+  var ringPointersEl = document.getElementById("ringPointers");
+  var csizeNEl = document.getElementById("csizeN");
+  var connectorEl = document.getElementById("connector");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnEnqueue = document.getElementById("btnEnqueue");
+  var btnDequeue = document.getElementById("btnDequeue");
+  var btnFront = document.getElementById("btnFront");
+  var btnReset = document.getElementById("btnReset");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  function svgEl(tag, attrs){
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+  function cellAngle(i){ return -90 + i * 45; }
+  function polar(angleDeg, r){
+    var rad = angleDeg * Math.PI / 180;
+    return { x: CENTER + r * Math.cos(rad), y: CENTER + r * Math.sin(rad) };
+  }
+
+  // ---- state ----
+  var pool = [];
+  var data = [];
+  var front = 0, size = 0;
+  var dequeueCount = 0;   // unwrapped total dequeues -> continuous front rotation
+  var enqueueCount = 0;   // unwrapped total enqueues -> continuous rear rotation
+  var version = 0;
+  var busy = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+  function randomPool(n){ var a=[]; for (var i=0;i<n;i++) a.push(10+Math.floor(Math.random()*90)); return a; }
+
+  // ---- build linear slots ----
+  var lslotEls = [];
+  (function buildLinear(){
+    for (var i = 0; i < CAP; i++){
+      var slot = document.createElement("div");
+      slot.className = "lslot";
+      var idx = document.createElement("span"); idx.className = "idx"; idx.textContent = i;
+      var val = document.createElement("span"); val.className = "val";
+      slot.appendChild(idx); slot.appendChild(val);
+      linearRowEl.appendChild(slot);
+      lslotEls.push(slot);
+    }
+  })();
+
+  // ---- build ring cells ----
+  var ringCellRect = [], ringCellVal = [];
+  (function buildRing(){
+    for (var i = 0; i < CAP; i++){
+      var p = polar(cellAngle(i), R_CELL);
+      var g = svgEl("g", { transform: "translate(" + p.x + "," + p.y + ")" });
+      var rect = svgEl("rect", { x:-24, y:-20, width:48, height:40, rx:8, class:"ccell" });
+      var idxT = svgEl("text", { x:-18, y:-8, class:"cidx" }); idxT.textContent = i;
+      var valT = svgEl("text", { x:0, y:7, "text-anchor":"middle", class:"cval" });
+      g.appendChild(rect); g.appendChild(idxT); g.appendChild(valT);
+      ringCellsEl.appendChild(g);
+      ringCellRect.push(rect); ringCellVal.push(valT);
+    }
+  })();
+
+  // ---- build ring pointers (front teal, rear amber) ----
+  function buildRingPointer(colorVar){
+    var g = svgEl("g", { class:"cptr-arrow" });
+    g.style.color = "var(" + colorVar + ")";
+    var poly = svgEl("polygon", { points:"0,8 -7,-6 7,-6", fill:"currentColor" });
+    g.appendChild(poly);
+    var labelGroup = svgEl("g", { class:"cptr-label-g" });
+    var label = svgEl("text", { class:"cptr-label", x:0, y:0, "dominant-baseline":"middle" });
+    label.style.fill = "var(" + colorVar + ")";
+    labelGroup.appendChild(label);
+    ringPointersEl.appendChild(g);
+    ringPointersEl.appendChild(labelGroup);
+    return { group: g, labelGroup: labelGroup, label: label };
+  }
+  var ringFrontPtr = buildRingPointer("--queue");
+  var ringRearPtr = buildRingPointer("--accent");
+
+  function updateRingPointer(ptr, unwrappedSteps, radius, text){
+    var i = ((unwrappedSteps % CAP) + CAP) % CAP;
+    var angle = cellAngle(i);
+    var pos = polar(angle, radius);
+    var rot = unwrappedSteps * 45;
+    ptr.group.setAttribute("transform", "translate(" + pos.x + "," + pos.y + ") rotate(" + rot + ")");
+    var lp = polar(angle, R_LABEL);
+    ptr.labelGroup.setAttribute("transform", "translate(" + lp.x + "," + lp.y + ")");
+    var cos = Math.cos(angle * Math.PI / 180);
+    var anchor = cos > 0.35 ? "start" : (cos < -0.35 ? "end" : "middle");
+    ptr.label.setAttribute("text-anchor", anchor);
+    ptr.label.textContent = text;
+  }
+
+  // ---- render ----
+  function renderLinear(opts){
+    opts = opts || {};
+    for (var i = 0; i < CAP; i++){
+      var el = lslotEls[i];
+      var val = el.querySelector(".val");
+      if (data[i] !== null && data[i] !== undefined){ el.classList.add("filled"); val.textContent = data[i]; }
+      else { el.classList.remove("filled"); val.textContent = ""; }
+    }
+    if (opts.pulseIndex !== undefined){
+      var p = lslotEls[opts.pulseIndex];
+      p.classList.remove("pulse"); void p.offsetWidth; p.classList.add("pulse");
+    }
+    if (opts.flashIndex !== undefined){
+      var f = lslotEls[opts.flashIndex];
+      f.classList.remove("popflash"); void f.offsetWidth; f.classList.add("popflash");
+    }
+    var pitch = 52;
+    linFrontPtr.style.transform = "translateX(" + (front * pitch) + "px)";
+    var rearIdx = size > 0 ? (front + size - 1) % CAP : null;
+    if (rearIdx !== null){
+      linRearPtr.style.transform = "translateX(" + (rearIdx * pitch) + "px)";
+      linRearPtr.style.opacity = "1";
+    } else {
+      linRearPtr.style.opacity = ".25";
+    }
+    linearSubEl.textContent = "front = " + front + " · rear = " + (rearIdx !== null ? rearIdx : "−") + " · size " + size + " / " + CAP;
+    wrapNoteEl.classList.toggle("show", size > 0 && (front + size) > CAP);
+  }
+
+  function renderRing(opts){
+    opts = opts || {};
+    for (var i = 0; i < CAP; i++){
+      var filled = data[i] !== null && data[i] !== undefined;
+      ringCellRect[i].classList.toggle("filled", filled);
+      ringCellVal[i].classList.toggle("show", filled);
+      ringCellVal[i].textContent = filled ? data[i] : "";
+    }
+    if (opts.pulseIndex !== undefined){
+      var pr = ringCellRect[opts.pulseIndex];
+      pr.classList.remove("pulse"); pr.getBoundingClientRect(); pr.classList.add("pulse");
+    }
+    if (opts.flashIndex !== undefined){
+      var fr = ringCellRect[opts.flashIndex];
+      fr.classList.remove("pulse"); fr.getBoundingClientRect(); fr.classList.add("pulse");
+    }
+    updateRingPointer(ringFrontPtr, dequeueCount, R_PTR, "front");
+    if (size > 0){
+      ringRearPtr.group.style.opacity = "1"; ringRearPtr.labelGroup.style.opacity = "1";
+      updateRingPointer(ringRearPtr, enqueueCount - 1, R_PTR, "rear");
+    } else {
+      ringRearPtr.group.style.opacity = ".2"; ringRearPtr.labelGroup.style.opacity = ".2";
+    }
+    csizeNEl.textContent = size + "/" + CAP;
+  }
+
+  function renderPool(leavingIndex){
+    poolEl.innerHTML = "";
+    if (pool.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "pool-empty";
+      empty.textContent = "pool is empty — press Reset to refill";
+      poolEl.appendChild(empty);
+      return;
+    }
+    pool.forEach(function(v, i){
+      var tile = document.createElement("div");
+      tile.className = "tile" + (i === 0 ? " front" : "") + (i === leavingIndex ? " leaving" : "");
+      tile.textContent = v;
+      var ptr = document.createElement("span");
+      ptr.className = "ptr";
+      ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg><span style="font:600 9.5px \'IBM Plex Mono\',monospace;color:var(--accent)">next</span>';
+      tile.appendChild(ptr);
+      poolEl.appendChild(tile);
+    });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setStatus(text, cls){ statusEl.textContent = text || ""; statusEl.className = "status" + (cls ? " " + cls : ""); }
+  function highlightCode(key){ pseudoLines.forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); }); }
+  function shake(el){ el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+  function pulseConnector(){
+    connectorEl.classList.remove("pulse"); void connectorEl.offsetWidth; connectorEl.classList.add("pulse");
+    setTimeout(function(){ connectorEl.classList.remove("pulse"); }, 260);
+  }
+  function updateButtons(){ btnEnqueue.disabled = busy; btnDequeue.disabled = busy; btnFront.disabled = busy; }
+
+  async function doEnqueue(){
+    if (busy) return;
+    highlightCode("enqueue");
+    if (pool.length === 0){
+      setStatus("Pool is empty — press Reset to refill it.", "err");
+      log("enqueue() → ERROR: pool is empty, nothing to add", "err");
+      return;
+    }
+    if (size >= CAP){
+      setStatus("Queue is full (capacity " + CAP + ") — dequeue before enqueuing more.", "err");
+      log("enqueue(" + pool[0] + ") → ERROR: queue overflow", "err");
+      shake(linearCardEl); shake(circularCardEl);
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var val = pool[0];
+    renderPool(0);
+    pulseConnector();
+    await delay(280); if (version !== myVersion) return;
+    pool.shift();
+    renderPool();
+    var avail = (front + size) % CAP;
+    data[avail] = val;
+    size++; enqueueCount++;
+    renderLinear({ pulseIndex: avail });
+    renderRing({ pulseIndex: avail });
+    log("enqueue(" + val + ") → size " + size, "enqueue");
+    setStatus("enqueue(" + val + ") → size " + size, "");
+    await delay(200); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  async function doDequeue(){
+    if (busy) return;
+    highlightCode("dequeue");
+    if (size === 0){
+      setStatus("Queue is empty — nothing to dequeue.", "err");
+      log("dequeue() → ERROR: queue is empty", "err");
+      shake(linearCardEl); shake(circularCardEl);
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var idx = front;
+    renderLinear({ flashIndex: idx });
+    renderRing({ flashIndex: idx });
+    await delay(220); if (version !== myVersion) return;
+    var val = data[idx];
+    data[idx] = null;
+    front = (front + 1) % CAP;
+    size--; dequeueCount++;
+    renderLinear({});
+    renderRing({});
+    log("dequeue() → " + val, "dequeue");
+    setStatus("dequeue() → " + val, "");
+    await delay(150); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  async function doFront(){
+    if (busy) return;
+    highlightCode("front");
+    if (size === 0){
+      setStatus("Queue is empty — nothing at the front.", "err");
+      log("front() → ERROR: queue is empty", "err");
+      shake(linearCardEl); shake(circularCardEl);
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    renderLinear({ flashIndex: front });
+    renderRing({ flashIndex: front });
+    log("front() → " + data[front] + " (not removed)", "front");
+    setStatus("front() → " + data[front] + " (not removed)", "");
+    await delay(320); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  function reset(){
+    version++;
+    busy = false;
+    pool = randomPool(POOL_SIZE);
+    data = new Array(CAP).fill(null);
+    front = 0; size = 0; dequeueCount = 0; enqueueCount = 0;
+    logEl.innerHTML = "";
+    setStatus("");
+    highlightCode("");
+    renderPool();
+    renderLinear({});
+    renderRing({});
+    log("Pool refilled with " + POOL_SIZE + " values.", "skip");
+    updateButtons();
+  }
+
+  btnEnqueue.addEventListener("click", doEnqueue);
+  btnDequeue.addEventListener("click", doDequeue);
+  btnFront.addEventListener("click", doFront);
+  btnReset.addEventListener("click", reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>

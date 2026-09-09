@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dijkstra's Two-Stack Algorithm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --operand:#2f7a72;
+    --operand-soft:#d7ece8;
+    --danger:#b3492f;
+    --success:#2f7a4c;
+    --success-soft:#d9ecdf;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --operand:#4fa79c;
+      --operand-soft:#183330;
+      --danger:#e2694a;
+      --success:#63b782;
+      --success-soft:#152c20;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --operand:#4fa79c;
+    --operand-soft:#183330;
+    --danger:#e2694a;
+    --success:#63b782;
+    --success-soft:#152c20;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{
+    text-transform:uppercase;
+    letter-spacing:.09em;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--accent);
+  }
+  h1{
+    margin:.2em 0 .1em;
+    font-size:clamp(22px,3vw,30px);
+    font-weight:700;
+    text-wrap:balance;
+  }
+  .lede{
+    max-width:68ch;
+    color:var(--ink-soft);
+    font-size:14.5px;
+  }
+  .lede code{
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    background:var(--surface-2);
+    padding:.05em .35em;
+    border-radius:4px;
+    font-size:.93em;
+  }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    box-shadow:var(--shadow);
+  }
+
+  /* ---- header controls ---- */
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); }
+  .exprrow{ display:flex; gap:8px; }
+  input#exprInput{
+    font:600 14px "IBM Plex Mono", monospace;
+    color:var(--ink);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:7px 10px;
+    width:100%;
+    min-width:260px;
+  }
+  input#exprInput:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .examples{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .chip{
+    font:500 11.5px "IBM Plex Mono", monospace;
+    color:var(--ink-soft);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:2px 7px;
+    margin-left:4px;
+    cursor:pointer;
+  }
+  .chip:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .btnrow{ display:flex; gap:8px; align-items:center; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--ink);
+    padding:8px 14px;
+    cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:#241a06; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{
+    font:500 12.5px "IBM Plex Mono", monospace;
+    color:var(--ink-faint);
+    min-height:1.4em;
+  }
+  .status.err{ color:var(--danger); font-weight:600; }
+  .status.ok{ color:var(--success); font-weight:600; }
+
+  /* ---- expression tape ---- */
+  .tape-card{ padding:18px 18px 16px; }
+  .tape-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .tape{ display:flex; gap:6px; overflow-x:auto; padding-bottom:16px; }
+  .tok{
+    position:relative;
+    flex:0 0 auto;
+    min-width:30px;
+    height:34px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono", monospace;
+    font-weight:600;
+    font-size:15px;
+    border-radius:7px;
+    border:1.5px solid transparent;
+    background:var(--surface-2);
+    color:var(--ink-faint);
+    opacity:.85;
+    transition:opacity .2s, border-color .2s, transform .2s, background .2s;
+  }
+  .tok.paren{ color:var(--ink-faint); font-weight:500; background:transparent; min-width:20px; }
+  .tok.operand{ color:var(--operand); }
+  .tok.operator{ color:var(--accent); }
+  .tok.done{ opacity:.35; }
+  .tok.current{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    color:var(--ink);
+    transform:scale(1.08);
+  }
+  .tok .ptr{
+    position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    width:12px; height:8px; color:var(--accent);
+    opacity:0; transition:opacity .2s;
+  }
+  .tok.current .ptr{ opacity:1; }
+
+  /* ---- main grid ---- */
+  .main{ display:grid; grid-template-columns:1.55fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:880px){ .main{ grid-template-columns:1fr; } }
+
+  .stage{ display:flex; flex-direction:column; gap:16px; }
+
+  .stacks-card{ padding:20px 18px 22px; }
+  .stacks-row{ display:flex; justify-content:center; gap:56px; }
+  .stackcol{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .stackcol-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  .stackcol.operand .stackcol-title{ color:var(--operand); }
+  .stackcol.operator .stackcol-title{ color:var(--accent); }
+  .stackcol-sub{ font-size:11px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; margin-top:-6px; }
+
+  .stackframe{ position:relative; display:flex; }
+  .slots{ display:flex; flex-direction:column; gap:6px; }
+  .slot{
+    width:96px; height:38px;
+    border:1.5px dashed var(--border);
+    border-radius:7px;
+    display:flex; align-items:center; gap:8px;
+    padding:0 10px;
+    background:transparent;
+    transition:background .25s, border-color .25s, transform .18s;
+  }
+  .slot .idx{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); width:14px; flex:0 0 auto; }
+  .slot .val{ font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:15px; flex:1; text-align:center; opacity:0; transition:opacity .15s; }
+  .slot.filled{ border-style:solid; }
+  .slot.filled .val{ opacity:1; }
+  .stackcol.operand .slot.filled{ background:var(--operand-soft); border-color:var(--operand); }
+  .stackcol.operand .slot.filled .val{ color:var(--operand); }
+  .stackcol.operator .slot.filled{ background:var(--accent-soft); border-color:var(--accent); }
+  .stackcol.operator .slot.filled .val{ color:var(--accent); }
+  .slot.pulse{ animation:pulse .32s ease-out; }
+  @keyframes pulse{ 0%{ transform:scale(1.16); } 100%{ transform:scale(1); } }
+  .slot.popflash{ animation:popflash .3s ease-out; }
+  @keyframes popflash{ 0%{ transform:scale(1.1); opacity:.5; } 100%{ transform:scale(1); opacity:1; } }
+
+  .pointer{
+    position:absolute; left:100%; margin-left:8px; bottom:0; height:38px;
+    display:flex; align-items:center; gap:5px;
+    transform:translateY(0);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    white-space:nowrap;
+  }
+  .pointer svg{ transform:rotate(-90deg); }
+  .stackcol.operand .pointer{ color:var(--operand); }
+  .stackcol.operator .pointer{ color:var(--accent); }
+  .pointer .lbl{ font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; }
+
+  /* ---- reduce readout ---- */
+  .readout-card{ padding:16px 18px; }
+  .readout-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:12px; }
+  .readout{ display:flex; align-items:center; justify-content:center; gap:14px; min-height:64px; }
+  .readout.idle{ color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; font-size:13px; }
+  .rslot{ display:flex; flex-direction:column; align-items:center; gap:3px; opacity:0; transform:translateY(6px) scale(.9); transition:opacity .25s, transform .25s; }
+  .rslot.show{ opacity:1; transform:translateY(0) scale(1); }
+  .rslot .cap{ font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); }
+  .rslot .box{
+    min-width:38px; height:38px; padding:0 8px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:7px; font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:16px;
+  }
+  .rslot.operand .box{ background:var(--operand-soft); color:var(--operand); }
+  .rslot.operator .box{ background:var(--accent-soft); color:var(--accent); }
+  .rslot.result .box{ background:var(--success-soft); color:var(--success); }
+  .req{ font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); font-size:18px; opacity:0; transition:opacity .25s; }
+  .req.show{ opacity:1; }
+
+  .result-banner{
+    text-align:center; padding:14px 18px; border-radius:10px;
+    background:var(--success-soft); color:var(--success);
+    font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:16px;
+    display:none; align-items:center; justify-content:center; gap:8px;
+  }
+  .result-banner.show{ display:flex; }
+
+  /* ---- trace log ---- */
+  .log-card{ padding:16px 18px; display:flex; flex-direction:column; min-height:0; }
+  .log-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px;
+    display:flex; flex-direction:column; gap:7px;
+    max-height:560px; overflow-y:auto;
+    padding-right:4px;
+  }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{
+    flex:0 0 auto; margin-top:1px;
+    width:8px; height:8px; border-radius:2px; background:var(--ink-faint);
+  }
+  .log-entry.operand .tag{ background:var(--operand); }
+  .log-entry.operator .tag{ background:var(--accent); }
+  .log-entry.reduce .tag{ background:var(--danger); }
+  .log-entry.reduce{ color:var(--ink); font-weight:500; }
+  .log-entry.done .tag{ background:var(--success); }
+  .log-entry.skip{ color:var(--ink-faint); }
+
+  /* ---- pseudocode ---- */
+  .code-card{ padding:16px 18px; }
+  .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  pre.code{
+    margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.65;
+    color:var(--ink-soft); white-space:pre;
+  }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Stacks</div>
+    <h1>Dijkstra's Two-Stack Algorithm</h1>
+    <p class="lede">
+      A fully parenthesised arithmetic expression can be evaluated with two stacks and one left-to-right scan.
+      Numbers go on the <strong>operand</strong> stack, symbols go on the <strong>operator</strong> stack, and
+      <code>(</code> is skipped. Every <code>)</code> fires a reduction: pop an operator and its two operands,
+      apply the operator, and push the result back as a new operand.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <div class="field" style="flex:1 1 320px">
+      <label for="exprInput">Expression — fully parenthesised, e.g. (2+3)</label>
+      <div class="exprrow">
+        <input id="exprInput" type="text" spellcheck="false" autocomplete="off" value="(1+((2+3)*(4*5)))">
+        <button id="btnLoad">Load</button>
+      </div>
+      <div class="examples">
+        Try:
+        <button class="chip" type="button" data-expr="(1+((2+3)*(4*5)))">(1+((2+3)*(4*5)))</button>
+        <button class="chip" type="button" data-expr="(((6-2)*3)+(8/4))">(((6-2)*3)+(8/4))</button>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:18px">
+      <button id="btnPlay" class="primary">Play</button>
+      <button id="btnStep">Step</button>
+      <button id="btnReset" class="ghost">Reset</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card tape-card">
+    <div class="tape-label">Scan</div>
+    <div class="tape" id="tape"></div>
+  </div>
+
+  <div class="main">
+    <div class="stage">
+      <div class="card stacks-card">
+        <div class="stacks-row">
+          <div class="stackcol operand">
+            <div class="stackcol-title">Operands</div>
+            <div class="stackcol-sub" id="operandSub">size 0 / 6</div>
+            <div class="stackframe">
+              <div class="slots" id="operandSlots"></div>
+              <div class="pointer" id="operandPointer">
+                <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>
+                <span class="lbl">top</span>
+              </div>
+            </div>
+          </div>
+          <div class="stackcol operator">
+            <div class="stackcol-title">Operators</div>
+            <div class="stackcol-sub" id="operatorSub">size 0 / 6</div>
+            <div class="stackframe">
+              <div class="slots" id="operatorSlots"></div>
+              <div class="pointer" id="operatorPointer">
+                <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>
+                <span class="lbl">top</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card readout-card">
+        <div class="readout-label">Reduction on <code style="font-family:'IBM Plex Mono',monospace">)</code></div>
+        <div class="readout" id="readout">
+          <span class="idle" id="readoutIdle">waiting for a closing parenthesis&hellip;</span>
+          <div class="rslot operand" id="rLeft"><span class="cap">left</span><span class="box"></span></div>
+          <span class="req" id="rOp1">&nbsp;</span>
+          <div class="rslot operand" id="rRight"><span class="cap">right</span><span class="box"></span></div>
+          <span class="req" id="rEq">=</span>
+          <div class="rslot result" id="rResult"><span class="cap">push</span><span class="box"></span></div>
+        </div>
+        <div class="result-banner" id="resultBanner"></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="card log-card">
+        <div class="log-title">Trace</div>
+        <div class="log" id="log"></div>
+      </div>
+      <div class="card code-card">
+        <div class="code-title">One reduction, in code</div>
+        <pre class="code" id="pseudo"><span class="ln" data-k="pop-op">op = operators.pop()</span><span class="ln" data-k="pop-right">right = operands.pop()</span><span class="ln" data-k="pop-left">left  = operands.pop()</span><span class="ln" data-k="apply">result = apply(op, left, right)</span><span class="ln" data-k="push">operands.push(result)</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>Array-backed stacks, capacity 6 &middot; adapted from the Stacks &amp; Queues lecture (Dijkstra's 2-stack expression evaluator)</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CAP = 6;
+  var OPS = {
+    "+": function(a,b){ return a+b; },
+    "-": function(a,b){ return a-b; },
+    "*": function(a,b){ return a*b; },
+    "/": function(a,b){ return a/b; }
+  };
+  var OPERAND_RE = /^[0-9]+(\.[0-9]+)?$/;
+
+  function isOperand(t){ return OPERAND_RE.test(t); }
+  function isOperator(t){ return Object.prototype.hasOwnProperty.call(OPS, t); }
+
+  function tokenize(str){
+    var toks = [];
+    var i = 0;
+    while (i < str.length){
+      var c = str[i];
+      if (/\s/.test(c)){ i++; continue; }
+      if (c === "(" || c === ")"){ toks.push(c); i++; continue; }
+      if (c === "+" || c === "-" || c === "*" || c === "/"){ toks.push(c); i++; continue; }
+      if (/[0-9]/.test(c)){
+        var j = i;
+        while (j < str.length && /[0-9.]/.test(str[j])) j++;
+        toks.push(str.slice(i, j));
+        i = j;
+        continue;
+      }
+      throw new Error("Can't read '" + c + "' — only digits, + - * /, and parentheses are allowed.");
+    }
+    if (toks.length === 0) throw new Error("Enter an expression first.");
+    return toks;
+  }
+
+  function validate(toks){
+    var parenDepth = 0, operandSize = 0, operatorSize = 0, maxOperand = 0, maxOperator = 0;
+    for (var i = 0; i < toks.length; i++){
+      var t = toks[i];
+      if (t === "("){ parenDepth++; continue; }
+      if (t === ")"){
+        parenDepth--;
+        if (parenDepth < 0) return "There's a ')' with no matching '(' before it.";
+        if (operatorSize < 1) return "A ')' closes without an operator to reduce — wrap each operator in its own parentheses, e.g. (2+3).";
+        if (operandSize < 2) return "A ')' closes without two operands to reduce.";
+        operatorSize -= 1;
+        operandSize -= 1; // pops 2, pushes 1 result
+        continue;
+      }
+      if (isOperand(t)){ operandSize++; if (operandSize > maxOperand) maxOperand = operandSize; continue; }
+      if (isOperator(t)){ operatorSize++; if (operatorSize > maxOperator) maxOperator = operatorSize; continue; }
+    }
+    if (parenDepth !== 0) return "Not every '(' is closed.";
+    if (operandSize !== 1 || operatorSize !== 0) return "Expression doesn't fully reduce to one value — every operator needs its own enclosing parentheses.";
+    if (maxOperand > CAP || maxOperator > CAP) return "This needs more than " + CAP + " operands or operators on a stack at once — try something smaller.";
+    return null;
+  }
+
+  // ---- DOM refs ----
+  var exprInput = document.getElementById("exprInput");
+  var btnLoad = document.getElementById("btnLoad");
+  var chipEls = document.querySelectorAll(".chip");
+  var tapeEl = document.getElementById("tape");
+  var operandSlotsEl = document.getElementById("operandSlots");
+  var operatorSlotsEl = document.getElementById("operatorSlots");
+  var operandPointerEl = document.getElementById("operandPointer");
+  var operatorPointerEl = document.getElementById("operatorPointer");
+  var operandSubEl = document.getElementById("operandSub");
+  var operatorSubEl = document.getElementById("operatorSub");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnPlay = document.getElementById("btnPlay");
+  var btnStep = document.getElementById("btnStep");
+  var btnReset = document.getElementById("btnReset");
+  var readoutIdleEl = document.getElementById("readoutIdle");
+  var rLeft = document.getElementById("rLeft");
+  var rRight = document.getElementById("rRight");
+  var rResult = document.getElementById("rResult");
+  var rOp1 = document.getElementById("rOp1");
+  var rEq = document.getElementById("rEq");
+  var resultBanner = document.getElementById("resultBanner");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  // ---- state ----
+  var tokens = [];
+  var operandStack = [];
+  var operatorStack = [];
+  var scanIndex = 0;
+  var version = 0;
+  var busy = false;
+  var playing = false;
+
+  function delay(ms){
+    return new Promise(function(res){ setTimeout(res, ms); });
+  }
+
+  function buildSlots(container, capacity){
+    container.innerHTML = "";
+    var els = [];
+    for (var i = capacity - 1; i >= 0; i--){
+      var slot = document.createElement("div");
+      slot.className = "slot";
+      slot.dataset.index = i;
+      var idx = document.createElement("span");
+      idx.className = "idx"; idx.textContent = i;
+      var val = document.createElement("span");
+      val.className = "val";
+      slot.appendChild(idx); slot.appendChild(val);
+      container.appendChild(slot);
+      els[i] = slot;
+    }
+    return els;
+  }
+  var operandEls = buildSlots(operandSlotsEl, CAP);
+  var operatorEls = buildSlots(operatorSlotsEl, CAP);
+
+  function renderStack(kind, opts){
+    opts = opts || {};
+    var stack = kind === "operand" ? operandStack : operatorStack;
+    var els = kind === "operand" ? operandEls : operatorEls;
+    var sub = kind === "operand" ? operandSubEl : operatorSubEl;
+    var pointer = kind === "operand" ? operandPointerEl : operatorPointerEl;
+
+    for (var i = 0; i < CAP; i++){
+      var el = els[i];
+      var val = el.querySelector(".val");
+      if (i < stack.length){
+        el.classList.add("filled");
+        val.textContent = stack[i];
+      } else {
+        el.classList.remove("filled");
+        val.textContent = "";
+      }
+    }
+    if (opts.pulseTop && stack.length > 0){
+      var top = els[stack.length - 1];
+      top.classList.remove("pulse"); void top.offsetWidth; top.classList.add("pulse");
+    }
+    if (opts.flashIndex !== undefined && opts.flashIndex >= 0){
+      var f = els[opts.flashIndex];
+      f.classList.remove("popflash"); void f.offsetWidth; f.classList.add("popflash");
+    }
+
+    sub.textContent = "size " + stack.length + " / " + CAP;
+    var topIdx = stack.length - 1;
+    var pitch = 44; // slot height 38 + gap 6
+    var offset = topIdx >= 0 ? -(topIdx * pitch) : pitch;
+    pointer.style.transform = "translateY(" + offset + "px)";
+    pointer.querySelector(".lbl").textContent = topIdx >= 0 ? "top" : "top = −1";
+  }
+
+  function renderTape(){
+    tapeEl.innerHTML = "";
+    tokens.forEach(function(tok, i){
+      var box = document.createElement("div");
+      box.className = "tok";
+      if (tok === "(" || tok === ")") box.classList.add("paren");
+      else if (isOperand(tok)) box.classList.add("operand");
+      else if (isOperator(tok)) box.classList.add("operator");
+      if (i < scanIndex) box.classList.add("done");
+      if (i === scanIndex) box.classList.add("current");
+      box.textContent = tok;
+      var ptr = document.createElement("span");
+      ptr.className = "ptr";
+      ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>';
+      box.appendChild(ptr);
+      tapeEl.appendChild(box);
+    });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function highlightCode(key){
+    pseudoLines.forEach(function(ln){
+      ln.classList.toggle("active", ln.dataset.k === key);
+    });
+  }
+
+  function showReadoutIdle(){
+    readoutIdleEl.style.display = "";
+    [rLeft, rRight, rResult].forEach(function(el){ el.classList.remove("show"); el.querySelector(".box").textContent = ""; });
+    [rOp1, rEq].forEach(function(el){ el.classList.remove("show"); });
+  }
+  function beginReadout(){
+    readoutIdleEl.style.display = "none";
+  }
+
+  // ---- animated primitives ----
+  function pushOperand(val){
+    operandStack.push(val);
+    renderStack("operand", { pulseTop: true });
+    return delay(360);
+  }
+  function pushOperator(val){
+    operatorStack.push(val);
+    renderStack("operator", { pulseTop: true });
+    return delay(360);
+  }
+
+  async function reduce(myVersion){
+    beginReadout();
+    var op = operatorStack[operatorStack.length - 1];
+    operatorStack.pop();
+    renderStack("operator", { flashIndex: operatorStack.length });
+    rOp1.textContent = op; rOp1.classList.add("show");
+    highlightCode("pop-op");
+    await delay(420); if (version !== myVersion) return null;
+
+    var right = operandStack[operandStack.length - 1];
+    operandStack.pop();
+    renderStack("operand", { flashIndex: operandStack.length });
+    rRight.querySelector(".box").textContent = right; rRight.classList.add("show");
+    highlightCode("pop-right");
+    await delay(420); if (version !== myVersion) return null;
+
+    var left = operandStack[operandStack.length - 1];
+    operandStack.pop();
+    renderStack("operand", { flashIndex: operandStack.length });
+    rLeft.querySelector(".box").textContent = left; rLeft.classList.add("show");
+    highlightCode("pop-left");
+    await delay(420); if (version !== myVersion) return null;
+
+    var result = OPS[op](left, right);
+    rEq.classList.add("show");
+    rResult.querySelector(".box").textContent = result; rResult.classList.add("show");
+    highlightCode("apply");
+    await delay(650); if (version !== myVersion) return null;
+
+    highlightCode("push");
+    operandStack.push(result);
+    renderStack("operand", { pulseTop: true });
+    log("Scan ')' — reduce: pop " + op + ", pop " + right + " (right), pop " + left + " (left) → " + left + " " + op + " " + right + " = " + result + " → push " + result, "reduce");
+    await delay(500); if (version !== myVersion) return null;
+    showReadoutIdle();
+    return result;
+  }
+
+  async function processToken(myVersion){
+    if (busy || scanIndex >= tokens.length) return;
+    busy = true;
+    updateButtons();
+    var tok = tokens[scanIndex];
+    renderTape();
+
+    if (tok === "("){
+      log("Scan '(' — ignore (grouping only)", "skip");
+      await delay(340);
+    } else if (isOperand(tok)){
+      await pushOperand(Number(tok));
+      log("Scan '" + tok + "' — push operand", "operand");
+    } else if (isOperator(tok)){
+      highlightCode("");
+      await pushOperator(tok);
+      log("Scan '" + tok + "' — push operator", "operator");
+    } else if (tok === ")"){
+      await reduce(myVersion);
+    }
+
+    if (version !== myVersion){ return; }
+    scanIndex++;
+    renderTape();
+    busy = false;
+
+    if (scanIndex >= tokens.length){
+      finish();
+    } else {
+      updateButtons();
+    }
+  }
+
+  function finish(){
+    playing = false;
+    var result = operandStack.length === 1 ? operandStack[0] : null;
+    if (result !== null){
+      log("Done — result = " + result, "done");
+      resultBanner.textContent = "Result: " + result;
+      resultBanner.classList.add("show");
+      setStatus("Evaluation complete — result is " + result + ".", "ok");
+    } else {
+      setStatus("Evaluation complete.", "ok");
+    }
+    updateButtons();
+  }
+
+  function updateButtons(){
+    var done = scanIndex >= tokens.length;
+    btnPlay.disabled = done;
+    btnStep.disabled = done || busy || playing;
+    btnPlay.textContent = playing ? "Pause" : "Play";
+  }
+
+  async function play(){
+    if (playing) { playing = false; updateButtons(); return; }
+    playing = true;
+    updateButtons();
+    var myVersion = version;
+    while (playing && scanIndex < tokens.length && version === myVersion){
+      await processToken(myVersion);
+      if (version !== myVersion) return;
+      if (scanIndex < tokens.length) await delay(260);
+    }
+    playing = false;
+    updateButtons();
+  }
+
+  function restart(logMsg){
+    version++;
+    playing = false;
+    busy = false;
+    scanIndex = 0;
+    operandStack = [];
+    operatorStack = [];
+    logEl.innerHTML = "";
+    resultBanner.classList.remove("show");
+    showReadoutIdle();
+    renderStack("operand", {});
+    renderStack("operator", {});
+    renderTape();
+    highlightCode("");
+    setStatus("");
+    if (logMsg) log(logMsg, "skip");
+    updateButtons();
+  }
+
+  function loadExpression(str){
+    var toks;
+    try { toks = tokenize(str); }
+    catch (e){ setStatus(e.message, "err"); return false; }
+    var err = validate(toks);
+    if (err){ setStatus(err, "err"); return false; }
+    tokens = toks;
+    restart("Expression loaded: " + tokens.join(" "));
+    return true;
+  }
+
+  btnLoad.addEventListener("click", function(){ loadExpression(exprInput.value); });
+  exprInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter"){ e.preventDefault(); loadExpression(exprInput.value); }
+  });
+  chipEls.forEach(function(chip){
+    chip.addEventListener("click", function(){
+      exprInput.value = chip.dataset.expr;
+      loadExpression(exprInput.value);
+    });
+  });
+  btnPlay.addEventListener("click", play);
+  btnStep.addEventListener("click", function(){
+    if (playing) return;
+    processToken(version);
+  });
+  btnReset.addEventListener("click", function(){ restart("Reset."); });
+
+  loadExpression(exprInput.value);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bracket Matching with a Stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --stack:#2f7a72;
+    --stack-soft:#d7ece8;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --success:#2f7a4c;
+    --success-soft:#d9ecdf;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --stack:#4fa79c;
+      --stack-soft:#183330;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --success:#63b782;
+      --success-soft:#152c20;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --stack:#4fa79c;
+    --stack-soft:#183330;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --success:#63b782;
+    --success-soft:#152c20;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:72ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); }
+  .exprrow{ display:flex; gap:8px; }
+  input#strInput{
+    font:600 14px "IBM Plex Mono", monospace;
+    color:var(--ink); background:var(--surface-2);
+    border:1px solid var(--border); border-radius:7px;
+    padding:7px 10px; width:100%; min-width:300px;
+  }
+  input#strInput:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+  .examples{ font-size:11.5px; color:var(--ink-faint); margin-top:2px; }
+  .chip{
+    font:500 11.5px "IBM Plex Mono", monospace; color:var(--ink-soft);
+    background:var(--surface-2); border:1px solid var(--border); border-radius:6px;
+    padding:2px 7px; margin-left:4px; cursor:pointer;
+  }
+  .chip:hover{ border-color:var(--ink-faint); color:var(--ink); }
+  .btnrow{ display:flex; gap:8px; align-items:center; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:8px 14px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--accent); border-color:var(--accent); color:#241a06; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  /* ---- tape ---- */
+  .tape-card{ padding:18px 18px 16px; }
+  .tape-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .tape{ display:flex; gap:4px; overflow-x:auto; padding-bottom:16px; }
+  .tok{
+    position:relative; flex:0 0 auto;
+    min-width:26px; height:32px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono", monospace; font-weight:600; font-size:14.5px;
+    border-radius:6px; border:1.5px solid transparent;
+    background:var(--surface-2); color:var(--ink-faint);
+    opacity:.85;
+    transition:opacity .2s, border-color .2s, transform .2s, background .2s, color .2s;
+  }
+  .tok.other{ background:transparent; color:var(--ink-faint); font-weight:400; min-width:14px; opacity:.55; }
+  .tok.open{ color:var(--stack); }
+  .tok.close{ color:var(--accent); }
+  .tok.done{ opacity:.35; }
+  .tok.current{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); transform:scale(1.1); opacity:1; }
+  .tok.bad{ border-color:var(--danger); background:var(--danger-soft); color:var(--danger); transform:scale(1.1); opacity:1; }
+  .tok .ptr{ position:absolute; top:100%; left:50%; transform:translateX(-50%); width:12px; height:8px; color:var(--accent); opacity:0; transition:opacity .2s; }
+  .tok.current .ptr{ opacity:1; }
+  .tok.bad .ptr{ opacity:1; color:var(--danger); }
+
+  /* ---- main grid ---- */
+  .main{ display:grid; grid-template-columns:1.4fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:880px){ .main{ grid-template-columns:1fr; } }
+  .stage{ display:flex; flex-direction:column; gap:16px; }
+
+  .stacks-card{ padding:20px 18px 22px; display:flex; flex-direction:column; align-items:center; gap:8px; transition:border-color .15s; }
+  .stacks-card.shake{ animation:shake .32s; }
+  @keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+  .stackcol-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--stack); }
+  .stackcol-sub{ font-size:11px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; margin-top:-4px; }
+  .stackframe{ position:relative; display:flex; margin-top:6px; }
+  .slots{ display:flex; flex-direction:column; gap:6px; }
+  .slot{
+    width:88px; height:38px;
+    border:1.5px dashed var(--border); border-radius:7px;
+    display:flex; align-items:center; gap:8px; padding:0 10px;
+    background:transparent;
+    transition:background .25s, border-color .25s, transform .18s;
+  }
+  .slot .idx{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--ink-faint); width:14px; flex:0 0 auto; }
+  .slot .val{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:16px; flex:1; text-align:center; opacity:0; transition:opacity .15s; }
+  .slot.filled{ border-style:solid; background:var(--stack-soft); border-color:var(--stack); }
+  .slot.filled .val{ opacity:1; color:var(--stack); }
+  .slot.pulse{ animation:pulse .32s ease-out; }
+  @keyframes pulse{ 0%{ transform:scale(1.16); } 100%{ transform:scale(1); } }
+  .slot.popflash{ animation:popflash .3s ease-out; }
+  @keyframes popflash{ 0%{ transform:scale(1.14); box-shadow:0 0 0 3px var(--accent-soft); } 100%{ transform:scale(1); box-shadow:none; } }
+
+  .pointer{
+    position:absolute; left:100%; margin-left:8px; bottom:0; height:38px;
+    display:flex; align-items:center; gap:5px; color:var(--stack);
+    transform:translateY(0);
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    white-space:nowrap;
+  }
+  .pointer svg{ transform:rotate(-90deg); }
+  .pointer .lbl{ font-family:"IBM Plex Mono",monospace; font-size:11px; font-weight:600; }
+
+  /* ---- compare readout ---- */
+  .readout-card{ padding:16px 18px; }
+  .readout-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:12px; }
+  .readout{ display:flex; align-items:center; justify-content:center; gap:16px; min-height:64px; }
+  .readout.idle{ color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; font-size:13px; }
+  .cslot{ display:flex; flex-direction:column; align-items:center; gap:3px; opacity:0; transform:translateY(6px) scale(.9); transition:opacity .25s, transform .25s; }
+  .cslot.show{ opacity:1; transform:translateY(0) scale(1); }
+  .cslot .cap{ font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); }
+  .cslot .box{ min-width:38px; height:38px; padding:0 8px; display:flex; align-items:center; justify-content:center; border-radius:7px; font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:18px; background:var(--surface-2); color:var(--ink-faint); }
+  .cslot.top .box{ background:var(--stack-soft); color:var(--stack); }
+  .cslot.cur .box{ background:var(--accent-soft); color:var(--accent); }
+  .vs{ font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); font-size:13px; opacity:0; transition:opacity .25s; }
+  .vs.show{ opacity:1; }
+  .verdict-pill{
+    font:700 11.5px "IBM Plex Mono",monospace; text-transform:uppercase; letter-spacing:.05em;
+    padding:5px 10px; border-radius:999px; opacity:0; transform:scale(.85); transition:opacity .2s, transform .2s;
+  }
+  .verdict-pill.show{ opacity:1; transform:scale(1); }
+  .verdict-pill.match{ background:var(--success-soft); color:var(--success); }
+  .verdict-pill.mismatch{ background:var(--danger-soft); color:var(--danger); }
+
+  .result-banner{
+    text-align:center; padding:14px 18px; border-radius:10px;
+    font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:15.5px;
+    display:none; align-items:center; justify-content:center; gap:8px;
+  }
+  .result-banner.show{ display:flex; }
+  .result-banner.balanced{ background:var(--success-soft); color:var(--success); }
+  .result-banner.mismatched{ background:var(--danger-soft); color:var(--danger); }
+
+  /* ---- trace + code ---- */
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:340px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.push .tag{ background:var(--stack); }
+  .log-entry.match .tag{ background:var(--success); }
+  .log-entry.bad{ color:var(--danger); font-weight:600; }
+  .log-entry.bad .tag{ background:var(--danger); }
+  .log-entry.skip{ color:var(--ink-faint); }
+  .log-entry.done .tag{ background:var(--accent); }
+
+  .code-card{ padding:16px 18px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.7; color:var(--ink-soft); white-space:pre; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Stacks</div>
+    <h1>Bracket Matching with a Stack</h1>
+    <p class="lede">
+      Scan the string left to right. Every opening bracket <code>( [ {</code> gets pushed. Every closing
+      bracket <code>) ] }</code> must match whatever is currently on top of the stack — pop it and continue
+      if it does; if it doesn't, or the stack is already empty, the string is unbalanced. Anything that
+      isn't a bracket is simply scanned over.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <div class="field" style="flex:1 1 340px">
+      <label for="strInput">String to check</label>
+      <div class="exprrow">
+        <input id="strInput" type="text" spellcheck="false" autocomplete="off" value="foo(bar[0], {x: (1+2)})">
+        <button id="btnLoad">Load</button>
+      </div>
+      <div class="examples">
+        Try:
+        <button class="chip" type="button" data-s="([{}])">([{}])</button>
+        <button class="chip" type="button" data-s="foo(bar[0], {x: (1+2)})">foo(bar[0], {x: (1+2)})</button>
+        <button class="chip" type="button" data-s="([)]">([)]</button>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:18px">
+      <button id="btnPlay" class="primary">Play</button>
+      <button id="btnStep">Step</button>
+      <button id="btnReset" class="ghost">Reset</button>
+    </div>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card tape-card">
+    <div class="tape-label">Scan</div>
+    <div class="tape" id="tape"></div>
+  </div>
+
+  <div class="main">
+    <div class="stage">
+      <div class="card stacks-card" id="stacksCard">
+        <div class="stackcol-title">Open brackets</div>
+        <div class="stackcol-sub" id="stackSub">size 0 / 10</div>
+        <div class="stackframe">
+          <div class="slots" id="stackSlots"></div>
+          <div class="pointer" id="stackPointer">
+            <svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>
+            <span class="lbl">top</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card readout-card">
+        <div class="readout-label">Compare on a closing bracket</div>
+        <div class="readout" id="readout">
+          <span class="idle" id="readoutIdle">waiting for a closing bracket&hellip;</span>
+          <div class="cslot top" id="cTop"><span class="cap">top of stack</span><span class="box"></span></div>
+          <span class="vs" id="cVs">vs</span>
+          <div class="cslot cur" id="cCur"><span class="cap">scanned</span><span class="box"></span></div>
+          <span class="verdict-pill" id="cVerdict"></span>
+        </div>
+        <div class="result-banner" id="resultBanner"></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="card log-card">
+        <div class="log-title">Trace</div>
+        <div class="log" id="log"></div>
+      </div>
+      <div class="card code-card">
+        <div class="code-title">is_matched(expr), one character</div>
+        <pre class="code" id="pseudo"><span class="ln" data-k="push">if c in lefty:  S.push(c)</span><span class="ln" data-k="empty">elif c in righty:
+    if S.is_empty(): return False</span><span class="ln" data-k="compare">    if pair(c) != S.pop(): return False</span><span class="ln" data-k="done">return S.is_empty()</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>Array-backed stack, capacity 10 &middot; adapted from is_matched(expr) — Stacks &amp; Queues, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var CAP = 10;
+  var OPEN = "([{";
+  var CLOSE = ")]}";
+  var PAIR_OPEN_FOR_CLOSE = { ")":"(", "]":"[", "}":"{" };
+  var PAIR_CLOSE_FOR_OPEN = { "(":")", "[":"]", "{":"}" };
+
+  function isOpen(c){ return OPEN.indexOf(c) !== -1; }
+  function isClose(c){ return CLOSE.indexOf(c) !== -1; }
+
+  function validate(chars){
+    var depth = 0;
+    for (var i = 0; i < chars.length; i++){
+      var c = chars[i];
+      if (isOpen(c)){
+        depth++;
+        if (depth > CAP) return "This nests deeper than " + CAP + " nested brackets — try something shallower for this visualizer.";
+      } else if (isClose(c)){
+        if (depth === 0) break; // would short-circuit as a mismatch — nothing more to check
+        depth--;
+      }
+    }
+    return null;
+  }
+
+  // ---- DOM refs ----
+  var strInput = document.getElementById("strInput");
+  var btnLoad = document.getElementById("btnLoad");
+  var chipEls = document.querySelectorAll(".chip");
+  var tapeEl = document.getElementById("tape");
+  var stackSlotsEl = document.getElementById("stackSlots");
+  var stackPointerEl = document.getElementById("stackPointer");
+  var stackSubEl = document.getElementById("stackSub");
+  var stacksCardEl = document.getElementById("stacksCard");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnPlay = document.getElementById("btnPlay");
+  var btnStep = document.getElementById("btnStep");
+  var btnReset = document.getElementById("btnReset");
+  var readoutIdleEl = document.getElementById("readoutIdle");
+  var cTop = document.getElementById("cTop");
+  var cCur = document.getElementById("cCur");
+  var cVs = document.getElementById("cVs");
+  var cVerdict = document.getElementById("cVerdict");
+  var resultBanner = document.getElementById("resultBanner");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  // ---- state ----
+  var chars = [];
+  var stack = [];
+  var scanIndex = 0;
+  var version = 0;
+  var busy = false;
+  var playing = false;
+  var mismatched = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  var stackEls = (function build(){
+    var els = [];
+    for (var i = CAP - 1; i >= 0; i--){
+      var slot = document.createElement("div");
+      slot.className = "slot";
+      var idx = document.createElement("span"); idx.className = "idx"; idx.textContent = i;
+      var val = document.createElement("span"); val.className = "val";
+      slot.appendChild(idx); slot.appendChild(val);
+      stackSlotsEl.appendChild(slot);
+      els[i] = slot;
+    }
+    return els;
+  })();
+
+  function renderStack(opts){
+    opts = opts || {};
+    for (var i = 0; i < CAP; i++){
+      var el = stackEls[i];
+      var val = el.querySelector(".val");
+      if (i < stack.length){ el.classList.add("filled"); val.textContent = stack[i]; }
+      else { el.classList.remove("filled"); val.textContent = ""; }
+    }
+    if (opts.pulseTop && stack.length > 0){
+      var top = stackEls[stack.length - 1];
+      top.classList.remove("pulse"); void top.offsetWidth; top.classList.add("pulse");
+    }
+    if (opts.flashIndex !== undefined && opts.flashIndex >= 0){
+      var f = stackEls[opts.flashIndex];
+      f.classList.remove("popflash"); void f.offsetWidth; f.classList.add("popflash");
+    }
+    stackSubEl.textContent = "size " + stack.length + " / " + CAP;
+    var topIdx = stack.length - 1;
+    var pitch = 44;
+    var offset = topIdx >= 0 ? -(topIdx * pitch) : pitch;
+    stackPointerEl.style.transform = "translateY(" + offset + "px)";
+    stackPointerEl.querySelector(".lbl").textContent = topIdx >= 0 ? "top" : "top = −1";
+  }
+
+  function renderTape(){
+    tapeEl.innerHTML = "";
+    chars.forEach(function(c, i){
+      var box = document.createElement("div");
+      box.className = "tok";
+      if (isOpen(c)) box.classList.add("open");
+      else if (isClose(c)) box.classList.add("close");
+      else box.classList.add("other");
+      if (i < scanIndex) box.classList.add("done");
+      if (i === scanIndex && !mismatched) box.classList.add("current");
+      if (i === scanIndex && mismatched) box.classList.add("bad");
+      box.textContent = c === " " ? " " : c;
+      var ptr = document.createElement("span");
+      ptr.className = "ptr";
+      ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>';
+      box.appendChild(ptr);
+      tapeEl.appendChild(box);
+    });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function highlightCode(key){
+    pseudoLines.forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); });
+  }
+
+  function shakeStack(){
+    stacksCardEl.classList.remove("shake"); void stacksCardEl.offsetWidth; stacksCardEl.classList.add("shake");
+  }
+
+  function showReadoutIdle(){
+    readoutIdleEl.style.display = "";
+    [cTop, cCur].forEach(function(el){ el.classList.remove("show"); el.querySelector(".box").textContent = ""; });
+    cVs.classList.remove("show");
+    cVerdict.classList.remove("show", "match", "mismatch");
+    cVerdict.textContent = "";
+  }
+  function beginReadout(){ readoutIdleEl.style.display = "none"; }
+
+  async function compareClose(c, myVersion){
+    beginReadout();
+    if (stack.length === 0){
+      cCur.querySelector(".box").textContent = c; cCur.classList.add("show");
+      cVerdict.textContent = "mismatch"; cVerdict.classList.add("show", "mismatch");
+      highlightCode("empty");
+      log("scan '" + c + "' — MISMATCH: stack is empty, nothing to match", "bad");
+      mismatched = true;
+      await delay(550);
+      return;
+    }
+    var idx = stack.length - 1;
+    var open = stack[idx];
+    renderStack({ flashIndex: idx });
+    cTop.querySelector(".box").textContent = open; cTop.classList.add("show");
+    await delay(260); if (version !== myVersion) return;
+    cVs.classList.add("show");
+    cCur.querySelector(".box").textContent = c; cCur.classList.add("show");
+    highlightCode("compare");
+    await delay(320); if (version !== myVersion) return;
+
+    var expected = PAIR_CLOSE_FOR_OPEN[open];
+    if (expected === c){
+      cVerdict.textContent = "match"; cVerdict.classList.add("show", "match");
+      stack.pop();
+      renderStack({});
+      log("scan '" + c + "' — pop '" + open + "', matches", "match");
+      await delay(420); if (version !== myVersion) return;
+      showReadoutIdle();
+    } else {
+      cVerdict.textContent = "mismatch"; cVerdict.classList.add("show", "mismatch");
+      stack.pop();
+      renderStack({});
+      log("scan '" + c + "' — pop '" + open + "', MISMATCH (expected '" + expected + "')", "bad");
+      mismatched = true;
+      await delay(550);
+    }
+  }
+
+  async function processChar(myVersion){
+    if (busy || mismatched || scanIndex >= chars.length) return;
+    busy = true; updateButtons();
+    var c = chars[scanIndex];
+    renderTape();
+
+    if (isOpen(c)){
+      stack.push(c);
+      renderStack({ pulseTop: true });
+      highlightCode("push");
+      log("scan '" + c + "' — push", "push");
+      await delay(320);
+    } else if (isClose(c)){
+      await compareClose(c, myVersion);
+    } else {
+      await delay(90);
+    }
+
+    if (version !== myVersion) return;
+    if (!mismatched) scanIndex++;
+    renderTape();
+    busy = false;
+
+    if (mismatched || scanIndex >= chars.length){ finish(); }
+    else { updateButtons(); }
+  }
+
+  function finish(){
+    playing = false;
+    highlightCode("done");
+    if (mismatched){
+      resultBanner.textContent = "Mismatched — see the highlighted pair above.";
+      resultBanner.className = "result-banner mismatched show";
+      setStatus("Unbalanced.", "err");
+      log("Done — unbalanced", "bad");
+    } else if (stack.length === 0){
+      resultBanner.textContent = "Balanced — every bracket closes correctly.";
+      resultBanner.className = "result-banner balanced show";
+      setStatus("Balanced.", "");
+      log("Done — balanced, stack is empty", "done");
+    } else {
+      resultBanner.textContent = "Mismatched — " + stack.length + " bracket(s) never closed.";
+      resultBanner.className = "result-banner mismatched show";
+      setStatus("Unbalanced.", "err");
+      log("Done — unbalanced, " + stack.length + " bracket(s) left open", "bad");
+    }
+    updateButtons();
+  }
+
+  function updateButtons(){
+    var done = mismatched || scanIndex >= chars.length;
+    btnPlay.disabled = done;
+    btnStep.disabled = done || busy || playing;
+    btnPlay.textContent = playing ? "Pause" : "Play";
+  }
+
+  async function play(){
+    if (playing){ playing = false; updateButtons(); return; }
+    playing = true; updateButtons();
+    var myVersion = version;
+    while (playing && !mismatched && scanIndex < chars.length && version === myVersion){
+      await processChar(myVersion);
+      if (version !== myVersion) return;
+      if (!mismatched && scanIndex < chars.length) await delay(220);
+    }
+    playing = false;
+    updateButtons();
+  }
+
+  function restart(logMsg){
+    version++;
+    playing = false;
+    busy = false;
+    mismatched = false;
+    scanIndex = 0;
+    stack = [];
+    logEl.innerHTML = "";
+    resultBanner.classList.remove("show");
+    showReadoutIdle();
+    renderStack({});
+    renderTape();
+    highlightCode("");
+    setStatus("");
+    if (logMsg) log(logMsg, "skip");
+    updateButtons();
+  }
+
+  function loadString(str){
+    var cs = Array.from(str);
+    if (cs.length === 0){ setStatus("Enter a string first.", "err"); return false; }
+    var err = validate(cs);
+    if (err){ setStatus(err, "err"); return false; }
+    chars = cs;
+    restart("Loaded: " + str);
+    return true;
+  }
+
+  btnLoad.addEventListener("click", function(){ loadString(strInput.value); });
+  strInput.addEventListener("keydown", function(e){
+    if (e.key === "Enter"){ e.preventDefault(); loadString(strInput.value); }
+  });
+  chipEls.forEach(function(chip){
+    chip.addEventListener("click", function(){
+      strInput.value = chip.dataset.s;
+      loadString(strInput.value);
+    });
+  });
+  btnPlay.addEventListener("click", play);
+  btnStep.addEventListener("click", function(){
+    if (playing) return;
+    processChar(version);
+  });
+  btnReset.addEventListener("click", function(){ restart("Reset."); });
+
+  loadString(strInput.value);
+})();
+</script>
+</body>
+</html>
