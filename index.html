@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Structures — Interactive Visualizations</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0f1117;
+      --surface:   #181c27;
+      --border:    #252a38;
+      --accent:    #5b8fff;
+      --accent-dim:#1e2d52;
+      --text:      #e2e6f0;
+      --muted:     #6b7494;
+      --tag-stack: #3d2a52;
+      --tag-queue: #1e3d3a;
+      --tag-stack-fg: #c9a8f5;
+      --tag-queue-fg: #6fe0cc;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    header {
+      max-width: 680px;
+      margin: 0 auto 3.5rem;
+    }
+
+    .eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--text);
+    }
+
+    h1 span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin-top: 0.9rem;
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .divider {
+      width: 40px;
+      height: 2px;
+      background: var(--accent);
+      margin: 2rem 0;
+      opacity: 0.6;
+    }
+
+    .grid {
+      max-width: 680px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    a.card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.1rem 1.4rem;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    a.card:hover {
+      border-color: var(--accent);
+      background: #141829;
+    }
+
+    .card-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .index-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      min-width: 1.8rem;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .tag {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.65rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+
+    .tag.stack {
+      background: var(--tag-stack);
+      color: var(--tag-stack-fg);
+    }
+
+    .tag.queue {
+      background: var(--tag-queue);
+      color: var(--tag-queue-fg);
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 1rem;
+      flex-shrink: 0;
+      transition: color 0.15s, transform 0.15s;
+    }
+
+    a.card:hover .arrow {
+      color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    footer {
+      max-width: 680px;
+      margin: 3.5rem auto 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">interactive visualizations</p>
+    <h1>Data <span>Structures</span></h1>
+    <p class="subtitle">Click any module to open the interactive visualization. Best viewed on desktop.</p>
+    <div class="divider"></div>
+  </header>
+
+  <main class="grid">
+
+    <a class="card" href="stack-adt-basics.html">
+      <div class="card-left">
+        <span class="index-num">01</span>
+        <span class="card-title">Stack ADT: Push, Pop, Top</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="tag stack">stack</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="bracket-matching.html">
+      <div class="card-left">
+        <span class="index-num">02</span>
+        <span class="card-title">Bracket Matching with a Stack</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="tag stack">stack</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="dijkstra-two-stack-eval.html">
+      <div class="card-left">
+        <span class="index-num">03</span>
+        <span class="card-title">Dijkstra's Two-Stack Algorithm</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="tag stack">stack</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="queue-adt-basics.html">
+      <div class="card-left">
+        <span class="index-num">04</span>
+        <span class="card-title">Queue ADT: Linear &amp; Circular</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="tag queue">queue</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="queue-resize.html">
+      <div class="card-left">
+        <span class="index-num">05</span>
+        <span class="card-title">Growing the Queue: resize()</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <span class="tag queue">queue</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+  </main>
+
+  <footer>— made with ♥ for students</footer>
+</body>
+</html>
