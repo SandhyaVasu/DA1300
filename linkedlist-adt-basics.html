@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linked List ADT: Insert &amp; Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --list:#2b5c99;
+    --list-soft:#dbe6f3;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --list:#6fa8e0;
+      --list-soft:#16283d;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --list:#6fa8e0;
+    --list-soft:#16283d;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:70ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--list); border-color:var(--list); color:#eaf2fb; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  /* ---- pool ---- */
+  .pool-card{ padding:18px 18px 20px; }
+  .pool-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:4px; }
+  .pool-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:14px; }
+  .pool{ display:flex; gap:8px; overflow-x:auto; padding-top:22px; padding-bottom:4px; min-height:44px; }
+  .pool-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); padding:8px 2px; }
+  .tile{
+    position:relative; flex:0 0 auto;
+    width:44px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14.5px;
+    border-radius:7px; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    transition:opacity .22s, transform .22s, border-color .2s;
+  }
+  .tile.front{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+  .tile.leaving{ opacity:0; transform:translateY(10px) scale(.85); }
+  .tile .ptr{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) rotate(180deg);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    opacity:0; transition:opacity .2s;
+  }
+  .tile.front .ptr{ opacity:1; }
+  .tile .ptr svg{ color:var(--accent); }
+
+  .connector{ display:flex; align-items:center; justify-content:center; gap:8px; padding:2px 0 10px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; font-size:11.5px; }
+  .connector svg{ transition:transform .18s, color .18s; }
+  .connector.pulse svg{ transform:translateY(3px) scale(1.15); color:var(--accent); }
+
+  /* ---- chain ---- */
+  .chain-card{ padding:26px 18px 22px; transition:border-color .15s; }
+  .chain-card.shake{ animation:shake .32s; }
+  @keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+  .chain-row{ display:flex; align-items:center; gap:0; overflow-x:auto; padding-top:34px; padding-bottom:6px; min-height:60px; }
+
+  .node-wrap{ position:relative; flex:0 0 auto; display:flex; align-items:stretch; }
+  .node{
+    display:flex; align-items:stretch;
+    border:1.5px solid var(--border); border-radius:8px; overflow:hidden;
+    background:var(--surface-2);
+    transition:border-color .2s, background .2s, transform .2s, box-shadow .2s;
+  }
+  .node .cell{ display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",monospace; font-weight:600; }
+  .node .cell.data{ width:50px; height:44px; font-size:15px; color:var(--ink); background:var(--list-soft); }
+  .node .cell.next{ width:26px; height:44px; border-left:1px dashed var(--border); color:var(--ink-faint); }
+  .node .cell.next .dot{ width:6px; height:6px; border-radius:50%; background:var(--list); display:block; }
+  .node.enter{ animation:nodeIn .32s ease-out; }
+  @keyframes nodeIn{ from{ opacity:0; transform:translateY(10px) scale(.85); } to{ opacity:1; transform:none; } }
+  .node.current{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); transform:translateY(-3px); }
+  .node.current .cell.data{ background:var(--accent-soft); color:var(--ink); }
+
+  .head-tag{
+    position:absolute; bottom:100%; left:0; right:0; margin-bottom:6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    color:var(--list); opacity:0; transition:opacity .2s;
+  }
+  .node-wrap.is-head .head-tag, .nullwrap.is-head .head-tag{ opacity:1; }
+  .head-tag .lbl{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:600; }
+
+  .arrow{ flex:0 0 auto; width:22px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); transition:color .2s; }
+  .arrow.pulse{ color:var(--list); }
+
+  .nullwrap{ position:relative; flex:0 0 auto; }
+  .nullbox{
+    width:40px; height:44px; border:1.5px dashed var(--border); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); font-size:14px;
+  }
+
+  /* ---- result readout ---- */
+  .result-card{ padding:16px 18px; }
+  .result-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .result-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; min-height:32px; }
+  .result-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); }
+  .result-tile{
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px;
+    padding:5px 11px; border-radius:6px;
+    background:var(--list-soft); color:var(--list); border:1px solid var(--list);
+    opacity:0; transform:scale(.85);
+    animation:resultIn .22s ease-out forwards;
+  }
+  @keyframes resultIn{ to{ opacity:1; transform:scale(1); } }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.beginning .tag{ background:var(--list); }
+  .log-entry.end .tag{ background:var(--accent); }
+  .log-entry.display .tag{ background:var(--ink-soft); }
+  .log-entry.err{ color:var(--danger); font-weight:500; }
+  .log-entry.err .tag{ background:var(--danger); }
+  .log-entry.skip{ color:var(--ink-faint); }
+
+  .code-card{ padding:16px 18px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.75; color:var(--ink-soft); white-space:pre; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Linked Lists</div>
+    <h1>The Linked List ADT</h1>
+    <p class="lede">
+      A singly linked list holds a chain of <strong>nodes</strong>, each storing a value and a pointer
+      to the next node, reachable only from <code>head</code>. <code>insert_at_beginning(x)</code> rewires
+      one pointer and is <strong>O(1)</strong>; <code>insert_at_end(x)</code> must first walk the whole
+      chain to find the last node, so it's <strong>O(n)</strong>; <code>display()</code> walks the chain
+      the same way to collect every value.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnBeginning" class="primary">Insert at Beginning</button>
+    <button id="btnEnd">Insert at End</button>
+    <button id="btnDisplay">Display</button>
+    <button id="btnReset" class="ghost">Reset</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card pool-card">
+    <div class="pool-label">Pool</div>
+    <div class="pool-sub">the leftmost value is next — an insert takes it into a new node</div>
+    <div class="pool" id="pool"></div>
+  </div>
+
+  <div class="connector" id="connector">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v10M7 11 3 7M7 11l4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="connectorLabel">insert</span>
+  </div>
+
+  <div class="card chain-card" id="chainCard">
+    <div class="chain-row" id="chainRow"></div>
+  </div>
+
+  <div class="card result-card">
+    <div class="result-title">display() readout</div>
+    <div class="result-row" id="resultRow"></div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">The three operations</div>
+      <pre class="code" id="pseudo"><span class="ln" data-k="beginning">insert_at_beginning(data):
+    new_node = Node(data)
+    new_node.next = head
+    head = new_node</span><span class="ln" data-k="end">insert_at_end(data):
+    new_node = Node(data)
+    if head is None:
+        head = new_node; return
+    current = head
+    while current.next is not None:
+        current = current.next
+    current.next = new_node</span><span class="ln" data-k="display">display():
+    elements = []
+    current = head
+    while current:
+        elements.append(current.data)
+        current = current.next
+    return elements</span></pre>
+    </div>
+  </div>
+
+  <footer>Singly linked list, no sentinel &middot; Linked Lists, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var POOL_SIZE = 10;
+
+  var poolEl = document.getElementById("pool");
+  var chainRowEl = document.getElementById("chainRow");
+  var chainCardEl = document.getElementById("chainCard");
+  var resultRowEl = document.getElementById("resultRow");
+  var connectorEl = document.getElementById("connector");
+  var connectorLabelEl = document.getElementById("connectorLabel");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnBeginning = document.getElementById("btnBeginning");
+  var btnEnd = document.getElementById("btnEnd");
+  var btnDisplay = document.getElementById("btnDisplay");
+  var btnReset = document.getElementById("btnReset");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  var pool = [];
+  var list = [];      // [{id, val}], index 0 is head
+  var nextId = 1;
+  var version = 0;
+  var busy = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  function randomPool(n){
+    var arr = [];
+    for (var i = 0; i < n; i++) arr.push(10 + Math.floor(Math.random() * 90));
+    return arr;
+  }
+
+  function headTagHtml(){
+    return '<div class="head-tag">' +
+      '<span class="lbl">head</span>' +
+      '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>' +
+      '</div>';
+  }
+
+  function renderChain(opts){
+    opts = opts || {};
+    chainRowEl.innerHTML = "";
+    for (var i = 0; i < list.length; i++){
+      var node = list[i];
+      var wrap = document.createElement("div");
+      wrap.className = "node-wrap" + (i === 0 ? " is-head" : "");
+      if (i === 0) wrap.innerHTML = headTagHtml();
+
+      var el = document.createElement("div");
+      el.className = "node" + (node.id === opts.enterId ? " enter" : "") + (node.id === opts.currentId ? " current" : "");
+      var dataCell = document.createElement("div"); dataCell.className = "cell data"; dataCell.textContent = node.val;
+      var nextCell = document.createElement("div"); nextCell.className = "cell next";
+      var dot = document.createElement("span"); dot.className = "dot"; nextCell.appendChild(dot);
+      el.appendChild(dataCell); el.appendChild(nextCell);
+      wrap.appendChild(el);
+      chainRowEl.appendChild(wrap);
+
+      var arrow = document.createElement("div");
+      arrow.className = "arrow" + (node.id === opts.enterId || node.id === opts.currentId ? " pulse" : "");
+      arrow.innerHTML = '<svg width="14" height="10" viewBox="0 0 14 10"><path d="M0 5h11M8 1l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      chainRowEl.appendChild(arrow);
+    }
+    var nullWrap = document.createElement("div");
+    nullWrap.className = "nullwrap" + (list.length === 0 ? " is-head" : "");
+    if (list.length === 0) nullWrap.innerHTML = headTagHtml();
+    var nullBox = document.createElement("div"); nullBox.className = "nullbox"; nullBox.textContent = "∅";
+    nullWrap.appendChild(nullBox);
+    chainRowEl.appendChild(nullWrap);
+  }
+
+  function renderPool(leavingIndex){
+    poolEl.innerHTML = "";
+    if (pool.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "pool-empty";
+      empty.textContent = "pool is empty — press Reset to refill";
+      poolEl.appendChild(empty);
+      return;
+    }
+    pool.forEach(function(v, i){
+      var tile = document.createElement("div");
+      tile.className = "tile" + (i === 0 ? " front" : "") + (i === leavingIndex ? " leaving" : "");
+      tile.textContent = v;
+      var ptr = document.createElement("span");
+      ptr.className = "ptr";
+      ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg><span style="font:600 9.5px \'IBM Plex Mono\',monospace;color:var(--accent)">next</span>';
+      tile.appendChild(ptr);
+      poolEl.appendChild(tile);
+    });
+  }
+
+  function renderResult(values){
+    resultRowEl.innerHTML = "";
+    if (!values || values.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "result-empty";
+      empty.textContent = "run display() to collect the list's values";
+      resultRowEl.appendChild(empty);
+      return;
+    }
+    values.forEach(function(v){
+      var tile = document.createElement("div");
+      tile.className = "result-tile";
+      tile.textContent = v;
+      resultRowEl.appendChild(tile);
+    });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function highlightCode(key){
+    pseudoLines.forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); });
+  }
+
+  function shakeChain(){
+    chainCardEl.classList.remove("shake"); void chainCardEl.offsetWidth; chainCardEl.classList.add("shake");
+  }
+
+  function pulseConnector(label){
+    connectorLabelEl.textContent = label;
+    connectorEl.classList.remove("pulse"); void connectorEl.offsetWidth; connectorEl.classList.add("pulse");
+    setTimeout(function(){ connectorEl.classList.remove("pulse"); }, 260);
+  }
+
+  function updateButtons(){
+    btnBeginning.disabled = busy;
+    btnEnd.disabled = busy;
+    btnDisplay.disabled = busy;
+  }
+
+  async function doInsertBeginning(){
+    if (busy) return;
+    highlightCode("beginning");
+    if (pool.length === 0){
+      setStatus("Pool is empty — press Reset to refill.", "err");
+      log("insert_at_beginning() → ERROR: pool is empty, nothing to insert", "err");
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var val = pool[0];
+    renderPool(0);
+    pulseConnector("prepend");
+    await delay(280); if (version !== myVersion) return;
+    pool.shift();
+    renderPool();
+    var node = { id: nextId++, val: val };
+    list.unshift(node);
+    renderChain({ enterId: node.id });
+    log("insert_at_beginning(" + val + ")", "beginning");
+    setStatus("insert_at_beginning(" + val + ") → new head, size " + list.length, "");
+    await delay(220); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  async function doInsertEnd(){
+    if (busy) return;
+    highlightCode("end");
+    if (pool.length === 0){
+      setStatus("Pool is empty — press Reset to refill.", "err");
+      log("insert_at_end() → ERROR: pool is empty, nothing to insert", "err");
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var val = pool[0];
+    renderPool(0);
+    pulseConnector("append");
+    await delay(280); if (version !== myVersion) return;
+    pool.shift();
+    renderPool();
+
+    var node = { id: nextId++, val: val };
+    if (list.length === 0){
+      list.push(node);
+      renderChain({ enterId: node.id });
+      log("insert_at_end(" + val + ") → head was None, new node becomes head", "end");
+      setStatus("insert_at_end(" + val + ") → list was empty, size 1", "");
+    } else {
+      for (var i = 0; i < list.length; i++){
+        renderChain({ currentId: list[i].id });
+        await delay(160); if (version !== myVersion) return;
+      }
+      list.push(node);
+      renderChain({ enterId: node.id });
+      var hops = list.length - 1;
+      log("insert_at_end(" + val + ") → walked " + hops + " node(s) to reach the end", "end");
+      setStatus("insert_at_end(" + val + ") → size " + list.length + " (O(n) walk)", "");
+    }
+    await delay(220); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  async function doDisplay(){
+    if (busy) return;
+    highlightCode("display");
+    busy = true; updateButtons();
+    var myVersion = version;
+    renderResult([]);
+    if (list.length === 0){
+      log("display() → []", "display");
+      setStatus("display() → [] (list is empty)", "");
+      await delay(260); if (version !== myVersion) return;
+      busy = false; updateButtons();
+      return;
+    }
+    var values = [];
+    for (var i = 0; i < list.length; i++){
+      renderChain({ currentId: list[i].id });
+      values.push(list[i].val);
+      renderResult(values);
+      await delay(220); if (version !== myVersion) return;
+    }
+    renderChain({});
+    log("display() → [" + values.join(", ") + "]", "display");
+    setStatus("display() → printed " + values.length + " element(s)", "");
+    await delay(180); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  function reset(){
+    version++;
+    busy = false;
+    pool = randomPool(POOL_SIZE);
+    list = [];
+    nextId = 1;
+    logEl.innerHTML = "";
+    setStatus("");
+    highlightCode("");
+    renderPool();
+    renderChain({});
+    renderResult([]);
+    log("Pool refilled with " + POOL_SIZE + " values. List starts empty (head = None).", "skip");
+    updateButtons();
+  }
+
+  btnBeginning.addEventListener("click", doInsertBeginning);
+  btnEnd.addEventListener("click", doInsertEnd);
+  btnDisplay.addEventListener("click", doDisplay);
+  btnReset.addEventListener("click", reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>

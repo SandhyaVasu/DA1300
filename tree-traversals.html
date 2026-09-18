@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tree Traversals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --tree:#1f7a8c;
+    --tree-soft:#d7eaee;
+    --success:#2f7a4c;
+    --success-soft:#d9ecdf;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --tree:#4fb8cc;
+      --tree-soft:#12313a;
+      --success:#63b782;
+      --success-soft:#152c20;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --tree:#4fb8cc;
+    --tree-soft:#12313a;
+    --success:#63b782;
+    --success-soft:#152c20;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:70ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--tree); border-color:var(--tree); color:#eafaff; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  /* ---- panels (frontier / output) ---- */
+  .panels{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:680px){ .panels{ grid-template-columns:1fr; } }
+  .pool-card{ padding:16px 18px 18px; }
+  .pool-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:4px; }
+  .pool-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:12px; min-height:2.6em; }
+  .pool{ display:flex; gap:8px; overflow-x:auto; padding-top:22px; padding-bottom:4px; min-height:44px; }
+  .pool-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); padding:8px 2px; }
+  .tile{
+    position:relative; flex:0 0 auto;
+    width:44px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14.5px;
+    border-radius:7px; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    transition:opacity .22s, transform .22s, border-color .2s, background .2s;
+  }
+  .tile.front{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+  .tile.new{ animation:tilepulse .3s ease-out; }
+  @keyframes tilepulse{ 0%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+  .tile .ptr{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) rotate(180deg);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    opacity:0; transition:opacity .2s;
+  }
+  .tile.front .ptr{ opacity:1; }
+
+  /* ---- tree ---- */
+  .tree-card{ padding:20px 16px 24px; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .tree-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--tree); }
+  .tree-sub{ font-size:11px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; margin-top:-2px; margin-bottom:6px; }
+  .tree-canvas-wrap{ width:100%; overflow-x:auto; display:flex; justify-content:center; padding:4px 0; }
+  .tree-canvas{ position:relative; min-width:260px; min-height:120px; }
+  .tree-canvas svg.edges{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+  .tree-canvas svg.edges line{ stroke:var(--ink-faint); stroke-width:1.6; stroke-linecap:round; }
+
+  .node{
+    position:absolute; width:40px; height:40px; margin-left:-20px; margin-top:-20px;
+    border-radius:50%; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px;
+    transition:background .22s, border-color .22s, color .22s, transform .22s;
+  }
+  .node.is-root::after{
+    content:"root"; position:absolute; top:-17px; left:50%; transform:translateX(-50%);
+    font:600 9px "IBM Plex Mono",monospace; color:var(--tree); letter-spacing:.03em; white-space:nowrap;
+  }
+  .node.queued{ border-style:dashed; border-width:2px; border-color:var(--accent); color:var(--ink-soft); }
+  .node.current{ border-style:solid; border-color:var(--accent); border-width:2px; background:var(--accent-soft); color:var(--ink); transform:scale(1.12); }
+  .node.visited{ border-style:solid; border-color:var(--tree); background:var(--tree-soft); color:var(--tree); }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.push .tag{ background:var(--tree); }
+  .log-entry.visit .tag{ background:var(--success); }
+  .log-entry.visit{ color:var(--ink); font-weight:500; }
+  .log-entry.skip{ color:var(--ink-faint); }
+
+  .code-card{ padding:16px 18px; }
+  .code-block{ display:none; }
+  .code-block.active{ display:block; }
+  .code-sub{ font:600 11.5px "IBM Plex Mono",monospace; color:var(--ink-faint); margin-bottom:6px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.75; color:var(--ink-soft); white-space:pre-wrap; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Trees</div>
+    <h1>Tree Traversals</h1>
+    <p class="lede">
+      Visiting every node in a tree in a well-defined order is a <strong>traversal</strong>. The three
+      depth-first orders &mdash; <strong>preorder</strong>, <strong>inorder</strong>, and
+      <strong>postorder</strong> &mdash; differ only in <em>when</em> a node is visited relative to its
+      children, and are usually written recursively. But each recursive call is really just an entry on an
+      implicit call stack &mdash; run any of them below and watch an explicit <code>stack</code> stand in
+      for that recursion. <strong>Level-order</strong> visits nodes breadth-first instead, one level at a
+      time, using a <code>queue</code> in place of a stack.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnPre" class="primary">Preorder</button>
+    <button id="btnIn" class="primary">Inorder</button>
+    <button id="btnPost" class="primary">Postorder</button>
+    <button id="btnLevel" class="primary">Level-order</button>
+    <button id="btnReset" class="ghost">New tree</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card tree-card" id="treeCard">
+    <div class="tree-title">Tree</div>
+    <div class="tree-sub" id="treeSub">10 nodes</div>
+    <div class="tree-canvas-wrap">
+      <div class="tree-canvas" id="treeCanvas">
+        <svg class="edges" id="edges"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="card pool-card">
+      <div class="pool-label" id="frontierTitle">Frontier &mdash; Stack</div>
+      <div class="pool-sub" id="frontierSub">LIFO: the next node processed is the one on top (rightmost tile)</div>
+      <div class="pool" id="frontier"></div>
+    </div>
+    <div class="card pool-card">
+      <div class="pool-label">Output</div>
+      <div class="pool-sub" id="outputSub">each visited value is appended in the order its node is visited</div>
+      <div class="pool" id="output"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">Pseudocode</div>
+      <div class="code-block active" id="codePre">
+        <div class="code-sub">preorder(node)</div>
+        <pre class="code"><span class="ln" data-k="base">if node is None: return</span><span class="ln" data-k="visit">visit(node)</span><span class="ln" data-k="left">preorder(node.left)</span><span class="ln" data-k="right">preorder(node.right)</span></pre>
+      </div>
+      <div class="code-block" id="codeIn">
+        <div class="code-sub">inorder(node)</div>
+        <pre class="code"><span class="ln" data-k="base">if node is None: return</span><span class="ln" data-k="left">inorder(node.left)</span><span class="ln" data-k="visit">visit(node)</span><span class="ln" data-k="right">inorder(node.right)</span></pre>
+      </div>
+      <div class="code-block" id="codePost">
+        <div class="code-sub">postorder(node)</div>
+        <pre class="code"><span class="ln" data-k="base">if node is None: return</span><span class="ln" data-k="left">postorder(node.left)</span><span class="ln" data-k="right">postorder(node.right)</span><span class="ln" data-k="visit">visit(node)</span></pre>
+      </div>
+      <div class="code-block" id="codeLevel">
+        <div class="code-sub">levelorder(root)</div>
+        <pre class="code"><span class="ln" data-k="base">queue = [root]</span><span class="ln" data-k="dequeue">node = queue.pop(0)</span><span class="ln" data-k="visit">visit(node)</span><span class="ln" data-k="enqueueL">if node.left:  queue.append(node.left)</span><span class="ln" data-k="enqueueR">if node.right: queue.append(node.right)</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>Fixed binary tree, 10 nodes &middot; Trees, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TREE_SIZE = 10;
+  var MARGIN_X = 26, MARGIN_Y = 26, SPACING_X = 54, SPACING_Y = 66;
+
+  var treeCanvasEl = document.getElementById("treeCanvas");
+  var edgesEl = document.getElementById("edges");
+  var treeSubEl = document.getElementById("treeSub");
+  var frontierEl = document.getElementById("frontier");
+  var frontierTitleEl = document.getElementById("frontierTitle");
+  var frontierSubEl = document.getElementById("frontierSub");
+  var outputEl = document.getElementById("output");
+  var outputSubEl = document.getElementById("outputSub");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnPre = document.getElementById("btnPre");
+  var btnIn = document.getElementById("btnIn");
+  var btnPost = document.getElementById("btnPost");
+  var btnLevel = document.getElementById("btnLevel");
+  var btnReset = document.getElementById("btnReset");
+  var codeBlocks = {
+    pre: document.getElementById("codePre"),
+    "in": document.getElementById("codeIn"),
+    post: document.getElementById("codePost"),
+    level: document.getElementById("codeLevel")
+  };
+  var modeLabels = { pre: "Preorder", "in": "Inorder", post: "Postorder", level: "Level-order" };
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  var root = null;
+  var nodesList = [];
+  var frontier = [];
+  var output = [];
+  var currentMode = "pre";
+  var version = 0;
+  var busy = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  function distinctRandomValues(n){
+    var used = {}, out = [];
+    while (out.length < n){
+      var v = 10 + Math.floor(Math.random() * 90);
+      if (used[v]) continue;
+      used[v] = true; out.push(v);
+    }
+    return out;
+  }
+
+  function silentInsert(node, val, parent){
+    if (!node) return { value: val, left: null, right: null, parent: parent || null, el: null };
+    if (val < node.value) node.left = silentInsert(node.left, val, node);
+    else if (val > node.value) node.right = silentInsert(node.right, val, node);
+    return node;
+  }
+
+  function collectInOrder(){
+    var list = [];
+    (function visit(n, depth){
+      if (!n) return;
+      visit(n.left, depth + 1);
+      n.y = depth; n.x = list.length;
+      list.push(n);
+      visit(n.right, depth + 1);
+    })(root, 0);
+    nodesList = list;
+    return list;
+  }
+
+  function pxOf(n){
+    return { x: MARGIN_X + n.x * SPACING_X, y: MARGIN_Y + n.y * SPACING_Y };
+  }
+
+  function renderTreeStatic(){
+    treeCanvasEl.querySelectorAll(".node").forEach(function(n){ n.remove(); });
+    var list = collectInOrder();
+    var maxDepth = 0;
+    list.forEach(function(n){ if (n.y > maxDepth) maxDepth = n.y; });
+    var width = list.length > 0 ? (MARGIN_X * 2 + Math.max(0, list.length - 1) * SPACING_X) : 260;
+    var height = MARGIN_Y * 2 + maxDepth * SPACING_Y;
+    treeCanvasEl.style.width = width + "px";
+    treeCanvasEl.style.height = Math.max(height, 60) + "px";
+    list.forEach(function(n){
+      var el = document.createElement("div");
+      el.className = "node" + (n === root ? " is-root" : "");
+      el.textContent = n.value;
+      treeCanvasEl.appendChild(el);
+      n.el = el;
+      var p = pxOf(n);
+      el.style.left = p.x + "px";
+      el.style.top = p.y + "px";
+    });
+    treeSubEl.textContent = list.length + " node" + (list.length === 1 ? "" : "s");
+    drawEdgesOnce();
+  }
+
+  function drawEdgesOnce(){
+    edgesEl.innerHTML = "";
+    var canvasRect = treeCanvasEl.getBoundingClientRect();
+    nodesList.forEach(function(n){
+      if (!n.parent) return;
+      var r1 = n.parent.el.getBoundingClientRect();
+      var r2 = n.el.getBoundingClientRect();
+      var line = document.createElementNS(SVGNS, "line");
+      line.setAttribute("x1", (r1.left + r1.width / 2) - canvasRect.left);
+      line.setAttribute("y1", (r1.top + r1.height / 2) - canvasRect.top);
+      line.setAttribute("x2", (r2.left + r2.width / 2) - canvasRect.left);
+      line.setAttribute("y2", (r2.top + r2.height / 2) - canvasRect.top);
+      edgesEl.appendChild(line);
+    });
+  }
+
+  function setNodeClass(n, cls){
+    if (!n || !n.el) return;
+    n.el.classList.remove("queued", "current", "visited");
+    if (cls) n.el.classList.add(cls);
+  }
+
+  function renderTiles(container, arr, opts){
+    opts = opts || {};
+    container.innerHTML = "";
+    if (arr.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "pool-empty";
+      empty.textContent = opts.emptyText || "empty";
+      container.appendChild(empty);
+      return;
+    }
+    arr.forEach(function(v, i){
+      var tile = document.createElement("div");
+      var cls = "tile";
+      if (i === opts.activeIndex) cls += " front";
+      if (i === opts.newIndex) cls += " new";
+      tile.className = cls;
+      tile.textContent = v;
+      if (i === opts.activeIndex && opts.activeLabel){
+        var ptr = document.createElement("span");
+        ptr.className = "ptr";
+        ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor" style="color:var(--accent)"/></svg><span style="font:600 9.5px \'IBM Plex Mono\',monospace;color:var(--accent)">' + opts.activeLabel + '</span>';
+        tile.appendChild(ptr);
+      }
+      container.appendChild(tile);
+    });
+  }
+
+  function renderFrontier(){
+    var isQueue = currentMode === "level";
+    var vals = frontier.map(function(n){ return n.value; });
+    var activeIndex = frontier.length ? (isQueue ? 0 : frontier.length - 1) : -1;
+    renderTiles(frontierEl, vals, { activeIndex: activeIndex, activeLabel: isQueue ? "front" : "top", emptyText: "frontier is empty" });
+  }
+
+  function renderOutput(){
+    renderTiles(outputEl, output, { newIndex: currentMode === "post" ? 0 : output.length - 1, emptyText: "no values emitted yet" });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function showPseudo(mode){
+    Object.keys(codeBlocks).forEach(function(k){ codeBlocks[k].classList.toggle("active", k === mode); });
+  }
+
+  function highlightPseudo(mode, key){
+    codeBlocks[mode].querySelectorAll(".ln").forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); });
+  }
+
+  function setPanelLabels(mode){
+    frontierTitleEl.textContent = mode === "level" ? "Frontier — Queue" : "Frontier — Stack";
+    frontierSubEl.textContent = mode === "level"
+      ? "FIFO: the next node processed is the oldest one (leftmost tile)"
+      : "LIFO: the next node processed is the one on top (rightmost tile)";
+    outputSubEl.textContent = mode === "post"
+      ? "each visited value is inserted at the FRONT — walking root→right→left and prepending yields left→right→root"
+      : "each visited value is appended in the order its node is visited";
+  }
+
+  function updateButtons(){
+    [btnPre, btnIn, btnPost, btnLevel, btnReset].forEach(function(b){ b.disabled = busy; });
+  }
+
+  function startRun(mode){
+    version++;
+    busy = true; updateButtons();
+    currentMode = mode;
+    showPseudo(mode);
+    highlightPseudo(mode, "");
+    frontier = [];
+    output = [];
+    nodesList.forEach(function(n){ setNodeClass(n, null); });
+    setPanelLabels(mode);
+    renderFrontier();
+    renderOutput();
+    logEl.innerHTML = "";
+    setStatus("");
+    log(modeLabels[mode] + " traversal started.", "skip");
+    return version;
+  }
+
+  function finishRun(){
+    highlightPseudo(currentMode, "base");
+    setStatus(modeLabels[currentMode] + " complete: " + output.join(", "), "");
+    log(modeLabels[currentMode] + " traversal complete.", "skip");
+    busy = false; updateButtons();
+  }
+
+  async function doPreorder(){
+    if (busy) return;
+    var myVersion = startRun("pre");
+    frontier = [root];
+    setNodeClass(root, "queued");
+    renderFrontier();
+    await delay(260); if (version !== myVersion) return;
+
+    while (frontier.length){
+      var node = frontier.pop();
+      setNodeClass(node, "current");
+      renderFrontier();
+      highlightPseudo("pre", "visit");
+      setStatus("visit(" + node.value + ")", "");
+      log("visit(" + node.value + ") → output", "visit");
+      output.push(node.value);
+      renderOutput();
+      await delay(340); if (version !== myVersion) return;
+      setNodeClass(node, "visited");
+
+      if (node.right){
+        highlightPseudo("pre", "right");
+        frontier.push(node.right);
+        setNodeClass(node.right, "queued");
+        log("push " + node.right.value + " (right child) onto the stack", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+      if (node.left){
+        highlightPseudo("pre", "left");
+        frontier.push(node.left);
+        setNodeClass(node.left, "queued");
+        log("push " + node.left.value + " (left child) onto the stack", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+    }
+    finishRun();
+  }
+
+  async function doInorder(){
+    if (busy) return;
+    var myVersion = startRun("in");
+    var cur = root;
+
+    while (cur || frontier.length){
+      while (cur){
+        highlightPseudo("in", "left");
+        frontier.push(cur);
+        setNodeClass(cur, "queued");
+        log("descend left, push " + cur.value + " onto the stack", "push");
+        renderFrontier();
+        await delay(240); if (version !== myVersion) return;
+        cur = cur.left;
+      }
+      var node = frontier.pop();
+      setNodeClass(node, "current");
+      renderFrontier();
+      highlightPseudo("in", "visit");
+      setStatus("visit(" + node.value + ")", "");
+      log("visit(" + node.value + ") → output", "visit");
+      output.push(node.value);
+      renderOutput();
+      await delay(340); if (version !== myVersion) return;
+      setNodeClass(node, "visited");
+
+      highlightPseudo("in", "right");
+      cur = node.right;
+      if (cur){
+        log("move right to " + cur.value, "skip");
+        await delay(180); if (version !== myVersion) return;
+      }
+    }
+    finishRun();
+  }
+
+  async function doPostorder(){
+    if (busy) return;
+    var myVersion = startRun("post");
+    frontier = [root];
+    setNodeClass(root, "queued");
+    renderFrontier();
+    await delay(260); if (version !== myVersion) return;
+
+    while (frontier.length){
+      var node = frontier.pop();
+      setNodeClass(node, "current");
+      renderFrontier();
+      highlightPseudo("post", "visit");
+      setStatus("visit(" + node.value + ") → placed at the front of the output", "");
+      log("visit(" + node.value + ") → insert at front of output", "visit");
+      output.unshift(node.value);
+      renderOutput();
+      await delay(340); if (version !== myVersion) return;
+      setNodeClass(node, "visited");
+
+      if (node.left){
+        highlightPseudo("post", "left");
+        frontier.push(node.left);
+        setNodeClass(node.left, "queued");
+        log("push " + node.left.value + " (left child) onto the stack", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+      if (node.right){
+        highlightPseudo("post", "right");
+        frontier.push(node.right);
+        setNodeClass(node.right, "queued");
+        log("push " + node.right.value + " (right child) onto the stack", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+    }
+    finishRun();
+  }
+
+  async function doLevelorder(){
+    if (busy) return;
+    var myVersion = startRun("level");
+    frontier = [root];
+    setNodeClass(root, "queued");
+    renderFrontier();
+    await delay(260); if (version !== myVersion) return;
+
+    while (frontier.length){
+      var node = frontier.shift();
+      setNodeClass(node, "current");
+      renderFrontier();
+      highlightPseudo("level", "visit");
+      setStatus("visit(" + node.value + ")", "");
+      log("dequeue " + node.value + ", visit → output", "visit");
+      output.push(node.value);
+      renderOutput();
+      await delay(340); if (version !== myVersion) return;
+      setNodeClass(node, "visited");
+
+      if (node.left){
+        highlightPseudo("level", "enqueueL");
+        frontier.push(node.left);
+        setNodeClass(node.left, "queued");
+        log("enqueue " + node.left.value + " (left child)", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+      if (node.right){
+        highlightPseudo("level", "enqueueR");
+        frontier.push(node.right);
+        setNodeClass(node.right, "queued");
+        log("enqueue " + node.right.value + " (right child)", "push");
+        renderFrontier();
+        await delay(220); if (version !== myVersion) return;
+      }
+    }
+    finishRun();
+  }
+
+  function newTree(){
+    version++;
+    busy = false;
+    var vals = distinctRandomValues(TREE_SIZE);
+    root = null;
+    vals.forEach(function(v){ root = silentInsert(root, v); });
+    frontier = []; output = [];
+    currentMode = "pre";
+    renderTreeStatic();
+    showPseudo("pre"); highlightPseudo("pre", "");
+    setPanelLabels("pre");
+    renderFrontier(); renderOutput();
+    logEl.innerHTML = "";
+    setStatus("");
+    log("New tree generated with " + TREE_SIZE + " nodes.", "skip");
+    updateButtons();
+  }
+
+  btnPre.addEventListener("click", doPreorder);
+  btnIn.addEventListener("click", doInorder);
+  btnPost.addEventListener("click", doPostorder);
+  btnLevel.addEventListener("click", doLevelorder);
+  btnReset.addEventListener("click", newTree);
+
+  newTree();
+})();
+</script>
+</body>
+</html>

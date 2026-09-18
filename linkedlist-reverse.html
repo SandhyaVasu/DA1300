@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reversing a Linked List</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --list:#2b5c99;
+    --list-soft:#dbe6f3;
+    --prev:#6a4fa3;
+    --prev-soft:#e6def4;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --success:#2f7a4c;
+    --success-soft:#d9ecdf;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --list:#6fa8e0;
+      --list-soft:#16283d;
+      --prev:#a78bd4;
+      --prev-soft:#241c38;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --success:#63b782;
+      --success-soft:#152c20;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --list:#6fa8e0;
+    --list-soft:#16283d;
+    --prev:#a78bd4;
+    --prev-soft:#241c38;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --success:#63b782;
+    --success-soft:#152c20;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:72ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--list); border-color:var(--list); color:#eaf2fb; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+  .status.done{ color:var(--success); font-weight:600; }
+
+  /* ---- chain ---- */
+  .chain-card{ padding:44px 18px 28px; }
+  .chain-row{ display:flex; align-items:center; gap:0; overflow-x:auto; padding-top:52px; padding-bottom:22px; min-height:96px; }
+
+  .node-wrap{ position:relative; flex:0 0 auto; display:flex; align-items:stretch; }
+  .node{
+    display:flex; align-items:stretch;
+    border:1.5px solid var(--border); border-radius:8px; overflow:hidden;
+    background:var(--surface-2);
+    transition:border-color .2s, background .2s, box-shadow .2s;
+  }
+  .node .cell{ display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono",monospace; font-weight:600; }
+  .node .cell.data{ width:50px; height:44px; font-size:15px; color:var(--ink); background:var(--list-soft); }
+  .node .cell.next{ width:26px; height:44px; border-left:1px dashed var(--border); color:var(--ink-faint); }
+  .node .cell.next .dot{ width:6px; height:6px; border-radius:50%; background:var(--list); display:block; }
+
+  .node.is-curr{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .node.is-curr .cell.data{ background:var(--accent-soft); color:var(--ink); }
+  .node.is-prev{ border-color:var(--prev); }
+  .node.is-prev .cell.data{ background:var(--prev-soft); color:var(--ink); }
+  .node.is-done{ border-color:var(--success); }
+  .node.is-done .cell.data{ background:var(--success-soft); color:var(--ink); }
+
+  .ptr-tag{
+    position:absolute; bottom:100%; left:0; right:0; margin-bottom:6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    opacity:0; transition:opacity .2s, left .3s, right .3s;
+    pointer-events:none;
+  }
+  .ptr-tag.show{ opacity:1; }
+  .ptr-tag .lbl{ font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:700; }
+  .ptr-tag.head-tag{ color:var(--list); }
+  .ptr-tag.prev-tag{ color:var(--prev); }
+  .ptr-tag.curr-tag{ color:var(--accent); bottom:auto; top:100%; margin-top:6px; margin-bottom:0; }
+
+  .arrow{ flex:0 0 auto; width:22px; height:44px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); position:relative; }
+  .arrow svg{ transition:transform .3s ease, color .25s; }
+  .arrow.reversed svg{ transform:rotate(180deg); color:var(--success); }
+  .arrow.flipping svg{ color:var(--accent); }
+
+  .nullwrap{ position:relative; flex:0 0 auto; }
+  .nullbox{
+    width:40px; height:44px; border:1.5px dashed var(--border); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; color:var(--ink-faint); font-size:14px;
+  }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.step .tag{ background:var(--accent); }
+  .log-entry.done .tag{ background:var(--success); }
+  .log-entry.skip{ color:var(--ink-faint); }
+
+  .code-card{ padding:16px 18px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.75; color:var(--ink-soft); white-space:pre; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Linked Lists</div>
+    <h1>Reversing a Singly Linked List</h1>
+    <p class="lede">
+      Reversal walks the chain once, rewiring each node's <code>next</code> pointer to point
+      <strong>backward</strong> instead of forward — no new nodes, no extra storage. Three
+      pointers do the work: <code>prev</code> trails behind, <code>current</code> is the node
+      being rewired, and <code>next_node</code> saves the rest of the chain before the link
+      is overwritten. When <code>current</code> runs off the end, <code>head</code> is moved to
+      <code>prev</code> — the old last node.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnStep" class="primary">Step</button>
+    <button id="btnRun">Run to End</button>
+    <button id="btnReset" class="ghost">Reset</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card chain-card" id="chainCard">
+    <div class="chain-row" id="chainRow"></div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">reverse()</div>
+      <pre class="code" id="pseudo"><span class="ln" data-k="init">prev = None
+current = head</span><span class="ln" data-k="loop">while current is not None:</span><span class="ln" data-k="save">    next_node = current.next</span><span class="ln" data-k="rewire">    current.next = prev</span><span class="ln" data-k="advance">    prev = current
+    current = next_node</span><span class="ln" data-k="finish">head = prev</span></pre>
+    </div>
+  </div>
+
+  <footer>Same Node/LinkedList structure as the notebook's insert/display methods &middot; Linked Lists, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SEED = [12, 47, 8, 63, 29, 5];
+
+  var chainRowEl = document.getElementById("chainRow");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnStep = document.getElementById("btnStep");
+  var btnRun = document.getElementById("btnRun");
+  var btnReset = document.getElementById("btnReset");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  // nodes never move on screen: nodes[i].next is a mutable index (or -1 for None)
+  var nodes = [];       // [{id, val, next}] fixed screen order, original index order
+  var headIdx = -1;
+  var prevIdx = -1;
+  var currIdx = -1;
+  var phase = "init";   // init | save | rewire | advance | done
+  var nextNodeIdx = -1;
+  var version = 0;
+  var busy = false;
+  var finished = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  function buildList(values){
+    nodes = values.map(function(v, i){ return { id: i, val: v, next: i + 1 < values.length ? i + 1 : -1 }; });
+    headIdx = values.length ? 0 : -1;
+  }
+
+  function tagHtml(cls, label, arrowDown){
+    return '<div class="ptr-tag ' + cls + ' show"><span class="lbl">' + label + '</span>' +
+      (arrowDown
+        ? '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>'
+        : '<svg width="12" height="8" viewBox="0 0 12 8" style="transform:rotate(180deg)"><polygon points="0,0 12,0 6,8" fill="currentColor"/></svg>') +
+      '</div>';
+  }
+
+  function render(){
+    chainRowEl.innerHTML = "";
+    for (var i = 0; i < nodes.length; i++){
+      var n = nodes[i];
+      var wrap = document.createElement("div");
+      wrap.className = "node-wrap";
+
+      var tags = "";
+      if (i === headIdx) tags += tagHtml("head-tag", "head", false);
+      if (i === prevIdx) tags += tagHtml("prev-tag", "prev", false);
+      if (i === currIdx) tags += tagHtml("curr-tag", "current", true);
+      wrap.innerHTML = tags;
+
+      var el = document.createElement("div");
+      var cls = "node";
+      if (i === currIdx) cls += " is-curr";
+      else if (i === prevIdx) cls += " is-prev";
+      else if (finished) cls += " is-done";
+      el.className = cls;
+      var dataCell = document.createElement("div"); dataCell.className = "cell data"; dataCell.textContent = n.val;
+      var nextCell = document.createElement("div"); nextCell.className = "cell next";
+      var dot = document.createElement("span"); dot.className = "dot"; nextCell.appendChild(dot);
+      el.appendChild(dataCell); el.appendChild(nextCell);
+      wrap.appendChild(el);
+      chainRowEl.appendChild(wrap);
+
+      // arrow drawn to the *physical* next slot (i+1); its direction/color reflects
+      // whether node i's pointer currently targets i+1 (forward, untouched) or has
+      // already been rewired backward (n.next !== i+1).
+      if (i + 1 < nodes.length || true){
+        var arrow = document.createElement("div");
+        var reversedLink = (n.next !== i + 1);
+        arrow.className = "arrow" + (reversedLink ? " reversed" : "") + (i === currIdx && phase === "rewire" ? " flipping" : "");
+        arrow.innerHTML = '<svg width="14" height="10" viewBox="0 0 14 10"><path d="M0 5h11M8 1l4 4-4 4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        chainRowEl.appendChild(arrow);
+      }
+    }
+    var nullWrap = document.createElement("div");
+    nullWrap.className = "nullwrap";
+    if (headIdx === -1) nullWrap.innerHTML = tagHtml("head-tag", "head", false);
+    if (currIdx === -1 && phase !== "init" && !finished) nullWrap.innerHTML += tagHtml("curr-tag", "current", true);
+    var nullBox = document.createElement("div"); nullBox.className = "nullbox"; nullBox.textContent = "∅";
+    nullWrap.appendChild(nullBox);
+    chainRowEl.appendChild(nullWrap);
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function highlightCode(key){
+    pseudoLines.forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); });
+  }
+
+  function updateButtons(){
+    btnStep.disabled = busy || finished;
+    btnRun.disabled = busy || finished;
+  }
+
+  // One call = one iteration of the while loop (save, rewire, advance),
+  // matching the four highlighted lines in the code panel.
+  async function step(){
+    if (busy || finished) return;
+    busy = true; updateButtons();
+    var myVersion = version;
+
+    if (currIdx === -1){
+      // while current is not None: loop condition fails -> finish
+      highlightCode("finish");
+      phase = "done";
+      headIdx = prevIdx;
+      finished = true;
+      render();
+      log("current is None → loop ends; head = prev", "done");
+      setStatus("head now points at node " + (prevIdx === -1 ? "None" : nodes[prevIdx].val) + " — list reversed", "done");
+      await delay(200); if (version !== myVersion) return;
+      busy = false; updateButtons();
+      return;
+    }
+
+    highlightCode("save");
+    phase = "save";
+    nextNodeIdx = nodes[currIdx].next;
+    render();
+    log("next_node = current.next  (" + (nextNodeIdx === -1 ? "None" : nodes[nextNodeIdx].val) + ")", "step");
+    await delay(320); if (version !== myVersion) return;
+
+    highlightCode("rewire");
+    phase = "rewire";
+    var before = nodes[currIdx].next;
+    nodes[currIdx].next = prevIdx;
+    render();
+    log("current.next = prev  (node " + nodes[currIdx].val + " now points to " + (prevIdx === -1 ? "None" : nodes[prevIdx].val) + ")", "step");
+    await delay(380); if (version !== myVersion) return;
+
+    highlightCode("advance");
+    phase = "advance";
+    prevIdx = currIdx;
+    currIdx = nextNodeIdx;
+    render();
+    log("prev = current; current = next_node", "step");
+    setStatus(currIdx === -1 ? "current is now None" : "current is now node " + nodes[currIdx].val, "");
+    await delay(260); if (version !== myVersion) return;
+
+    highlightCode("loop");
+    busy = false; updateButtons();
+  }
+
+  async function run(){
+    if (busy) return;
+    while (!finished){
+      await step();
+      if (finished) break;
+      await delay(60);
+    }
+  }
+
+  function reset(){
+    version++;
+    busy = false;
+    finished = false;
+    phase = "init";
+    buildList(SEED);
+    prevIdx = -1;
+    currIdx = headIdx;
+    nextNodeIdx = -1;
+    logEl.innerHTML = "";
+    setStatus("");
+    highlightCode("init");
+    render();
+    log("prev = None, current = head. Press Step to rewire one node at a time.", "skip");
+    updateButtons();
+  }
+
+  btnStep.addEventListener("click", step);
+  btnRun.addEventListener("click", run);
+  btnReset.addEventListener("click", reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>
