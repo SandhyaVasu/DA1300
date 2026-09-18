@@ -18,8 +18,12 @@
       --muted:     #6b7494;
       --tag-stack: #3d2a52;
       --tag-queue: #1e3d3a;
+      --tag-list:  #4a3218;
+      --tag-tree:  #1f3d24;
       --tag-stack-fg: #c9a8f5;
       --tag-queue-fg: #6fe0cc;
+      --tag-list-fg:  #f0bd7a;
+      --tag-tree-fg:  #7ee39b;
     }
 
     body {
@@ -97,10 +101,21 @@
       background: #141829;
     }
 
+    a.card:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
     .card-left {
       display: flex;
       align-items: center;
       gap: 1rem;
+    }
+
+    .card-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
 
     .index-num {
@@ -134,6 +149,16 @@
       color: var(--tag-queue-fg);
     }
 
+    .tag.list {
+      background: var(--tag-list);
+      color: var(--tag-list-fg);
+    }
+
+    .tag.tree {
+      background: var(--tag-tree);
+      color: var(--tag-tree-fg);
+    }
+
     .arrow {
       color: var(--muted);
       font-size: 1rem;
@@ -144,6 +169,11 @@
     a.card:hover .arrow {
       color: var(--accent);
       transform: translateX(3px);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      a.card, .arrow { transition: none; }
+      a.card:hover .arrow { transform: none; }
     }
 
     footer {
@@ -170,7 +200,7 @@
         <span class="index-num">01</span>
         <span class="card-title">Stack ADT: Push, Pop, Top</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem">
+      <div class="card-right">
         <span class="tag stack">stack</span>
         <span class="arrow">→</span>
       </div>
@@ -181,7 +211,7 @@
         <span class="index-num">02</span>
         <span class="card-title">Bracket Matching with a Stack</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem">
+      <div class="card-right">
         <span class="tag stack">stack</span>
         <span class="arrow">→</span>
       </div>
@@ -192,7 +222,7 @@
         <span class="index-num">03</span>
         <span class="card-title">Dijkstra's Two-Stack Algorithm</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem">
+      <div class="card-right">
         <span class="tag stack">stack</span>
         <span class="arrow">→</span>
       </div>
@@ -203,7 +233,7 @@
         <span class="index-num">04</span>
         <span class="card-title">Queue ADT: Linear &amp; Circular</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem">
+      <div class="card-right">
         <span class="tag queue">queue</span>
         <span class="arrow">→</span>
       </div>
@@ -214,8 +244,41 @@
         <span class="index-num">05</span>
         <span class="card-title">Growing the Queue: resize()</span>
       </div>
-      <div style="display:flex;align-items:center;gap:0.75rem">
+      <div class="card-right">
         <span class="tag queue">queue</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="linkedlist-adt-basics.html">
+      <div class="card-left">
+        <span class="index-num">06</span>
+        <span class="card-title">Linked List ADT: Insert, Delete, Traverse</span>
+      </div>
+      <div class="card-right">
+        <span class="tag list">linked list</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="linkedlist-reverse.html">
+      <div class="card-left">
+        <span class="index-num">07</span>
+        <span class="card-title">Reversing a Linked List</span>
+      </div>
+      <div class="card-right">
+        <span class="tag list">linked list</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="tree-traversals.html">
+      <div class="card-left">
+        <span class="index-num">08</span>
+        <span class="card-title">Tree Traversals: Inorder, Preorder, Postorder</span>
+      </div>
+      <div class="card-right">
+        <span class="tag tree">tree</span>
         <span class="arrow">→</span>
       </div>
     </a>
