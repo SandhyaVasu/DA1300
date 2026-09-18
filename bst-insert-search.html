@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binary Search Tree: Insert &amp; Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --surface:#ffffff;
+    --surface-2:#e4e9ed;
+    --ink:#1b2430;
+    --ink-soft:#59677a;
+    --ink-faint:#8a97a6;
+    --border:#c9d1d8;
+    --accent:#c07f16;
+    --accent-soft:#f4e3c2;
+    --tree:#1f7a8c;
+    --tree-soft:#d7eaee;
+    --success:#2f7a4c;
+    --success-soft:#d9ecdf;
+    --danger:#b3492f;
+    --danger-soft:#f5ddd5;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c;
+      --surface:#171f29;
+      --surface-2:#1f2a37;
+      --ink:#e8edf2;
+      --ink-soft:#a4b2c2;
+      --ink-faint:#67768a;
+      --border:#2c3947;
+      --accent:#e3a53f;
+      --accent-soft:#3a2f16;
+      --tree:#4fb8cc;
+      --tree-soft:#12313a;
+      --success:#63b782;
+      --success-soft:#152c20;
+      --danger:#e2694a;
+      --danger-soft:#3a2016;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c;
+    --surface:#171f29;
+    --surface-2:#1f2a37;
+    --ink:#e8edf2;
+    --ink-soft:#a4b2c2;
+    --ink-faint:#67768a;
+    --border:#2c3947;
+    --accent:#e3a53f;
+    --accent-soft:#3a2f16;
+    --tree:#4fb8cc;
+    --tree-soft:#12313a;
+    --success:#63b782;
+    --success-soft:#152c20;
+    --danger:#e2694a;
+    --danger-soft:#3a2016;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:70ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif;
+    border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink);
+    padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--tree); border-color:var(--tree); color:#eafaff; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  /* ---- pools ---- */
+  .pools{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:680px){ .pools{ grid-template-columns:1fr; } }
+  .pool-card{ padding:16px 18px 18px; }
+  .pool-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:4px; }
+  .pool-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:12px; }
+  .pool{ display:flex; gap:8px; overflow-x:auto; padding-top:22px; padding-bottom:4px; min-height:44px; }
+  .pool-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); padding:8px 2px; }
+  .tile{
+    position:relative; flex:0 0 auto;
+    width:44px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14.5px;
+    border-radius:7px; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    transition:opacity .22s, transform .22s, border-color .2s;
+  }
+  .tile.front{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+  .tile.leaving{ opacity:0; transform:translateY(10px) scale(.85); }
+  .tile .ptr{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) rotate(180deg);
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    opacity:0; transition:opacity .2s;
+  }
+  .tile.front .ptr{ opacity:1; }
+
+  /* ---- tree ---- */
+  .tree-card{ padding:20px 16px 24px; display:flex; flex-direction:column; align-items:center; gap:4px; transition:border-color .15s; }
+  .tree-card.shake{ animation:shake .32s; }
+  @keyframes shake{ 0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); } }
+  .tree-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--tree); }
+  .tree-sub{ font-size:11px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; margin-top:-2px; margin-bottom:6px; }
+  .tree-canvas-wrap{ width:100%; overflow-x:auto; display:flex; justify-content:center; padding:4px 0; }
+  .tree-canvas{ position:relative; min-width:260px; min-height:120px; transition:width .3s, height .3s; }
+  .tree-canvas svg.edges{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; pointer-events:none; }
+  .tree-canvas svg.edges line{ stroke:var(--ink-faint); stroke-width:1.6; stroke-linecap:round; }
+  .empty-msg{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint);
+  }
+
+  .node{
+    position:absolute; width:40px; height:40px; margin-left:-20px; margin-top:-20px;
+    border-radius:50%; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px;
+    transition:left .35s cubic-bezier(.4,0,.2,1), top .35s cubic-bezier(.4,0,.2,1),
+               background .2s, border-color .2s, color .2s, opacity .25s;
+  }
+  .node.is-root::after{
+    content:"root"; position:absolute; top:-17px; left:50%; transform:translateX(-50%);
+    font:600 9px "IBM Plex Mono",monospace; color:var(--tree); letter-spacing:.03em; white-space:nowrap;
+  }
+  .node.current{ border-color:var(--accent); border-width:2px; background:var(--accent-soft); color:var(--ink); }
+  .node.found{ border-color:var(--success); border-width:2px; background:var(--success-soft); color:var(--success); }
+  .node.miss{ border-color:var(--danger); border-width:2px; background:var(--danger-soft); color:var(--danger); }
+  .node.new{ animation:nodepulse .34s ease-out; }
+  @keyframes nodepulse{ 0%{ transform:scale(1.3); } 100%{ transform:scale(1); } }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.push .tag{ background:var(--tree); }
+  .log-entry.top .tag{ background:var(--success); }
+  .log-entry.err .tag{ background:var(--danger); }
+  .log-entry.err{ color:var(--danger); font-weight:500; }
+  .log-entry.skip{ color:var(--ink-faint); }
+  .log-entry.cmp{ color:var(--ink-soft); }
+
+  .code-card{ padding:16px 18px; }
+  .code-block{ display:none; }
+  .code-block.active{ display:block; }
+  .code-block + .code-block{ margin-top:14px; }
+  .code-sub{ font:600 11.5px "IBM Plex Mono",monospace; color:var(--ink-faint); margin-bottom:6px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.75; color:var(--ink-soft); white-space:pre-wrap; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Trees</div>
+    <h1>The Binary Search Tree</h1>
+    <p class="lede">
+      A binary search tree keeps values ordered so that every node's <strong>left</strong> subtree holds
+      only smaller values and its <strong>right</strong> subtree holds only larger ones. Both
+      <code>insert(x)</code> and <code>search(x)</code> walk down from the root, comparing <code>x</code>
+      against the current node and branching left or right &mdash; an operation whose cost is proportional
+      to the tree's <em>height</em>. Values queued below flow into the tree as you click.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnInsert" class="primary">Insert</button>
+    <button id="btnSearch">Search</button>
+    <button id="btnReset" class="ghost">Reset</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="pools">
+    <div class="card pool-card">
+      <div class="pool-label">Values to insert</div>
+      <div class="pool-sub">the leftmost value is next &mdash; <code>Insert</code> takes it into the tree</div>
+      <div class="pool" id="insertPool"></div>
+    </div>
+    <div class="card pool-card">
+      <div class="pool-label">Search queue</div>
+      <div class="pool-sub">a mix of values that are, and aren't, in the tree yet</div>
+      <div class="pool" id="searchPool"></div>
+    </div>
+  </div>
+
+  <div class="card tree-card" id="treeCard">
+    <div class="tree-title">Tree</div>
+    <div class="tree-sub" id="treeSub">0 nodes</div>
+    <div class="tree-canvas-wrap">
+      <div class="tree-canvas" id="treeCanvas">
+        <svg class="edges" id="edges"></svg>
+        <div class="empty-msg" id="emptyMsg">tree is empty &mdash; press Insert to add the first node</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">Pseudocode</div>
+      <div class="code-block active" id="codeInsert">
+        <div class="code-sub">insert(x, node)</div>
+        <pre class="code"><span class="ln" data-k="base">if node is None: return Node(x)</span><span class="ln" data-k="eq">if x == node.value: return node   # already present</span><span class="ln" data-k="left">if x &lt; node.value: node.left  = insert(x, node.left)</span><span class="ln" data-k="right">else:              node.right = insert(x, node.right)</span></pre>
+      </div>
+      <div class="code-block" id="codeSearch">
+        <div class="code-sub">search(x, node)</div>
+        <pre class="code"><span class="ln" data-k="base">if node is None: return False</span><span class="ln" data-k="eq">if x == node.value: return True</span><span class="ln" data-k="left">if x &lt; node.value: return search(x, node.left)</span><span class="ln" data-k="right">else:              return search(x, node.right)</span></pre>
+      </div>
+    </div>
+  </div>
+
+  <footer>Linked binary search tree, unbounded depth &middot; Trees, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var INSERT_POOL_SIZE = 9;
+  var SEARCH_POOL_SIZE = 6;
+  var MARGIN_X = 26, MARGIN_Y = 26, SPACING_X = 54, SPACING_Y = 66;
+
+  var insertPoolEl = document.getElementById("insertPool");
+  var searchPoolEl = document.getElementById("searchPool");
+  var treeCardEl = document.getElementById("treeCard");
+  var treeSubEl = document.getElementById("treeSub");
+  var canvasEl = document.getElementById("treeCanvas");
+  var edgesEl = document.getElementById("edges");
+  var emptyMsgEl = document.getElementById("emptyMsg");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnInsert = document.getElementById("btnInsert");
+  var btnSearch = document.getElementById("btnSearch");
+  var btnReset = document.getElementById("btnReset");
+  var codeInsertEl = document.getElementById("codeInsert");
+  var codeSearchEl = document.getElementById("codeSearch");
+
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  var insertPool = [];
+  var searchPool = [];
+  var root = null;
+  var version = 0;
+  var busy = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  function shuffle(arr){
+    for (var i = arr.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  function buildPools(){
+    var used = {};
+    function randVal(){
+      var v;
+      do { v = 10 + Math.floor(Math.random() * 90); } while (used[v]);
+      used[v] = true;
+      return v;
+    }
+    var insertVals = [];
+    for (var i = 0; i < INSERT_POOL_SIZE; i++) insertVals.push(randVal());
+    var absentVals = [];
+    for (var j = 0; j < SEARCH_POOL_SIZE - 3; j++) absentVals.push(randVal());
+    var searchVals = shuffle(insertVals.slice(0, 3).concat(absentVals));
+    return { insertVals: insertVals, searchVals: searchVals };
+  }
+
+  function allNodesInOrder(){
+    var list = [];
+    (function visit(n, depth){
+      if (!n) return;
+      visit(n.left, depth + 1);
+      n.y = depth;
+      n.x = list.length;
+      list.push(n);
+      visit(n.right, depth + 1);
+    })(root, 0);
+    return list;
+  }
+
+  function pxOf(n){
+    return { x: MARGIN_X + n.x * SPACING_X, y: MARGIN_Y + n.y * SPACING_Y };
+  }
+
+  function setNodeState(n, state){
+    if (!n || !n.el) return;
+    n.el.classList.remove("current", "found", "miss");
+    if (state) n.el.classList.add(state);
+  }
+
+  function updateEdgePositions(){
+    edgesEl.innerHTML = "";
+    var canvasRect = canvasEl.getBoundingClientRect();
+    allNodesInOrder().forEach(function(n){
+      if (!n.parent || !n.parent.el || !n.el) return;
+      var r1 = n.parent.el.getBoundingClientRect();
+      var r2 = n.el.getBoundingClientRect();
+      var line = document.createElementNS(SVGNS, "line");
+      line.setAttribute("x1", (r1.left + r1.width / 2) - canvasRect.left);
+      line.setAttribute("y1", (r1.top + r1.height / 2) - canvasRect.top);
+      line.setAttribute("x2", (r2.left + r2.width / 2) - canvasRect.left);
+      line.setAttribute("y2", (r2.top + r2.height / 2) - canvasRect.top);
+      edgesEl.appendChild(line);
+    });
+  }
+
+  function animateEdges(duration){
+    var start = performance.now();
+    function frame(now){
+      updateEdgePositions();
+      if (now - start < duration) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function renderTree(newNode, entranceFrom){
+    var list = allNodesInOrder();
+    var maxDepth = 0;
+    list.forEach(function(n){ if (n.y > maxDepth) maxDepth = n.y; });
+    var width = list.length > 0 ? (MARGIN_X * 2 + Math.max(0, list.length - 1) * SPACING_X) : 260;
+    var height = MARGIN_Y * 2 + maxDepth * SPACING_Y;
+    canvasEl.style.width = width + "px";
+    canvasEl.style.height = Math.max(height, 60) + "px";
+    emptyMsgEl.style.display = list.length === 0 ? "flex" : "none";
+
+    if (newNode && !newNode.el){
+      var el = document.createElement("div");
+      el.className = "node";
+      el.textContent = newNode.value;
+      canvasEl.appendChild(el);
+      newNode.el = el;
+      var start = entranceFrom ? pxOf(entranceFrom) : pxOf(newNode);
+      el.style.left = start.x + "px";
+      el.style.top = start.y + "px";
+      el.style.opacity = "0";
+      void el.offsetWidth;
+    }
+
+    list.forEach(function(n){
+      var p = pxOf(n);
+      n.el.classList.toggle("is-root", n === root);
+      n.el.style.left = p.x + "px";
+      n.el.style.top = p.y + "px";
+      n.el.style.opacity = "1";
+    });
+
+    if (newNode){
+      newNode.el.classList.remove("new"); void newNode.el.offsetWidth; newNode.el.classList.add("new");
+    }
+
+    animateEdges(420);
+    treeSubEl.textContent = list.length + " node" + (list.length === 1 ? "" : "s");
+  }
+
+  function renderPoolInto(container, arr, leavingIndex){
+    container.innerHTML = "";
+    if (arr.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "pool-empty";
+      empty.textContent = "queue is empty — press Reset to refill";
+      container.appendChild(empty);
+      return;
+    }
+    arr.forEach(function(v, i){
+      var tile = document.createElement("div");
+      tile.className = "tile" + (i === 0 ? " front" : "") + (i === leavingIndex ? " leaving" : "");
+      tile.textContent = v;
+      var ptr = document.createElement("span");
+      ptr.className = "ptr";
+      ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor" style="color:var(--accent)"/></svg><span style="font:600 9.5px \'IBM Plex Mono\',monospace;color:var(--accent)">next</span>';
+      tile.appendChild(ptr);
+      container.appendChild(tile);
+    });
+  }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function setStatus(text, cls){
+    statusEl.textContent = text || "";
+    statusEl.className = "status" + (cls ? " " + cls : "");
+  }
+
+  function showPseudo(op){
+    codeInsertEl.classList.toggle("active", op === "insert");
+    codeSearchEl.classList.toggle("active", op === "search");
+  }
+
+  function highlightPseudo(op, key){
+    var container = op === "insert" ? codeInsertEl : codeSearchEl;
+    container.querySelectorAll(".ln").forEach(function(ln){ ln.classList.toggle("active", ln.dataset.k === key); });
+  }
+
+  function shakeTree(){
+    treeCardEl.classList.remove("shake"); void treeCardEl.offsetWidth; treeCardEl.classList.add("shake");
+  }
+
+  function updateButtons(){
+    btnInsert.disabled = busy;
+    btnSearch.disabled = busy;
+  }
+
+  async function doInsert(){
+    if (busy) return;
+    showPseudo("insert");
+    highlightPseudo("insert", "");
+    if (insertPool.length === 0){
+      setStatus("Insert queue is empty — press Reset to refill.", "err");
+      log("insert() → ERROR: queue is empty", "err");
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var val = insertPool[0];
+    renderPoolInto(insertPoolEl, insertPool, 0);
+    await delay(260); if (version !== myVersion) return;
+    insertPool.shift();
+    renderPoolInto(insertPoolEl, insertPool, -1);
+
+    var cur = root, parent = null, side = null;
+    while (cur){
+      setNodeState(cur, "current");
+      setStatus("comparing " + val + " with " + cur.value + " …", "");
+      log("at " + cur.value + ":", "cmp");
+      await delay(360); if (version !== myVersion) return;
+      if (val === cur.value){
+        highlightPseudo("insert", "eq");
+        setNodeState(cur, "miss");
+        log("insert(" + val + ") → " + val + " is already in the tree, nothing to do", "err");
+        setStatus(val + " is already in the tree.", "err");
+        shakeTree();
+        await delay(450); if (version !== myVersion) return;
+        setNodeState(cur, null);
+        busy = false; updateButtons();
+        return;
+      }
+      var goLeft = val < cur.value;
+      highlightPseudo("insert", goLeft ? "left" : "right");
+      log("  " + val + (goLeft ? " < " : " > ") + cur.value + " → go " + (goLeft ? "left" : "right"), "skip");
+      var next = goLeft ? cur.left : cur.right;
+      setNodeState(cur, null);
+      parent = cur; side = goLeft ? "left" : "right";
+      cur = next;
+      if (cur){ await delay(140); if (version !== myVersion) return; }
+    }
+
+    highlightPseudo("insert", "base");
+    var newNode = { value: val, left: null, right: null, parent: parent, el: null };
+    if (parent) parent[side] = newNode; else root = newNode;
+    log("insert(" + val + ") → added as new node" + (parent ? (" (" + side + " child of " + parent.value + ")") : " (new root)"), "push");
+    renderTree(newNode, parent);
+    var count = allNodesInOrder().length;
+    setStatus("insert(" + val + ") → tree now has " + count + " node" + (count === 1 ? "" : "s"), "");
+    await delay(220); if (version !== myVersion) return;
+    busy = false; updateButtons();
+  }
+
+  async function doSearch(){
+    if (busy) return;
+    showPseudo("search");
+    highlightPseudo("search", "");
+    if (searchPool.length === 0){
+      setStatus("Search queue is empty — press Reset to refill.", "err");
+      log("search() → ERROR: search queue is empty", "err");
+      return;
+    }
+    busy = true; updateButtons();
+    var myVersion = version;
+    var val = searchPool[0];
+    renderPoolInto(searchPoolEl, searchPool, 0);
+    await delay(260); if (version !== myVersion) return;
+    searchPool.shift();
+    renderPoolInto(searchPoolEl, searchPool, -1);
+
+    if (!root){
+      highlightPseudo("search", "base");
+      setStatus("Tree is empty — " + val + " is not in it.", "err");
+      log("search(" + val + ") → not found (tree is empty)", "err");
+      shakeTree();
+      await delay(300); if (version !== myVersion) return;
+      busy = false; updateButtons();
+      return;
+    }
+
+    var cur = root;
+    while (cur){
+      setNodeState(cur, "current");
+      setStatus("comparing " + val + " with " + cur.value + " …", "");
+      log("at " + cur.value + ":", "cmp");
+      await delay(360); if (version !== myVersion) return;
+      if (val === cur.value){
+        highlightPseudo("search", "eq");
+        setNodeState(cur, "found");
+        log("search(" + val + ") → found at depth " + cur.y, "top");
+        setStatus("search(" + val + ") → found", "");
+        await delay(520); if (version !== myVersion) return;
+        setNodeState(cur, null);
+        busy = false; updateButtons();
+        return;
+      }
+      var goLeft = val < cur.value;
+      highlightPseudo("search", goLeft ? "left" : "right");
+      log("  " + val + (goLeft ? " < " : " > ") + cur.value + " → go " + (goLeft ? "left" : "right"), "skip");
+      var next = goLeft ? cur.left : cur.right;
+      var last = cur;
+      setNodeState(cur, null);
+      cur = next;
+      if (cur){
+        await delay(140); if (version !== myVersion) return;
+      } else {
+        highlightPseudo("search", "base");
+        setNodeState(last, "miss");
+        log("search(" + val + ") → not found (fell off the tree below " + last.value + ")", "err");
+        setStatus("search(" + val + ") → not found", "err");
+        shakeTree();
+        await delay(520); if (version !== myVersion) return;
+        setNodeState(last, null);
+      }
+    }
+    busy = false; updateButtons();
+  }
+
+  function reset(){
+    version++;
+    busy = false;
+    root = null;
+    var pools = buildPools();
+    insertPool = pools.insertVals;
+    searchPool = pools.searchVals;
+    logEl.innerHTML = "";
+    setStatus("");
+    showPseudo("insert");
+    highlightPseudo("insert", "");
+    canvasEl.querySelectorAll(".node").forEach(function(n){ n.remove(); });
+    renderPoolInto(insertPoolEl, insertPool, -1);
+    renderPoolInto(searchPoolEl, searchPool, -1);
+    renderTree(null, null);
+    log("Insert queue and search queue refilled.", "skip");
+    updateButtons();
+  }
+
+  btnInsert.addEventListener("click", doInsert);
+  btnSearch.addEventListener("click", doSearch);
+  btnReset.addEventListener("click", reset);
+
+  reset();
+})();
+</script>
+</body>
+</html>
