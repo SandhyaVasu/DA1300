@@ -24,6 +24,8 @@
       --tag-queue-fg: #6fe0cc;
       --tag-list-fg:  #f0bd7a;
       --tag-tree-fg:  #7ee39b;
+      --tag-sort: #3d304f;
+      --tag-sort-fg: #d8b9ff;
     }
 
     body {
@@ -158,6 +160,7 @@
       background: var(--tag-tree);
       color: var(--tag-tree-fg);
     }
+    .tag.sort { background: var(--tag-sort); color: var(--tag-sort-fg); }
 
     .arrow {
       color: var(--muted);
@@ -290,6 +293,17 @@
       </div>
       <div class="card-right">
         <span class="tag tree">tree</span>
+        <span class="arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="sorting-algorithms.html">
+      <div class="card-left">
+        <span class="index-num">10</span>
+        <span class="card-title">Sorting Algorithms: Compare &amp; Explore</span>
+      </div>
+      <div class="card-right">
+        <span class="tag sort">sorting</span>
         <span class="arrow">→</span>
       </div>
     </a>
