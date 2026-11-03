@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Topological Sort</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4; --surface:#ffffff; --surface-2:#e4e9ed;
+    --ink:#1b2430; --ink-soft:#59677a; --ink-faint:#8a97a6; --border:#c9d1d8;
+    --accent:#c07f16; --accent-soft:#f4e3c2;
+    --graph:#1f7a8c; --graph-soft:#d7eaee;
+    --post:#6a4fa3; --post-soft:#e6def4;
+    --success:#2f7a4c; --success-soft:#d9ecdf;
+    --danger:#b3492f; --danger-soft:#f5ddd5;
+    --shadow: 0 1px 2px rgba(27,36,48,.06), 0 8px 24px -12px rgba(27,36,48,.18);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10151c; --surface:#171f29; --surface-2:#1f2a37;
+      --ink:#e8edf2; --ink-soft:#a4b2c2; --ink-faint:#67768a; --border:#2c3947;
+      --accent:#e3a53f; --accent-soft:#3a2f16;
+      --graph:#4fb8cc; --graph-soft:#12313a;
+      --post:#a98fe0; --post-soft:#241c3a;
+      --success:#63b782; --success-soft:#152c20;
+      --danger:#e2694a; --danger-soft:#3a2016;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10151c; --surface:#171f29; --surface-2:#1f2a37;
+    --ink:#e8edf2; --ink-soft:#a4b2c2; --ink-faint:#67768a; --border:#2c3947;
+    --accent:#e3a53f; --accent-soft:#3a2f16;
+    --graph:#4fb8cc; --graph-soft:#12313a;
+    --post:#a98fe0; --post-soft:#241c3a;
+    --success:#63b782; --success-soft:#152c20;
+    --danger:#e2694a; --danger-soft:#3a2016;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 32px -16px rgba(0,0,0,.6);
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{ transition-duration:.001ms !important; animation-duration:.001ms !important; }
+  }
+
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    font-size:15px; line-height:1.5; padding:28px 20px 60px;
+  }
+  .wrap{ max-width:1080px; margin:0 auto; display:flex; flex-direction:column; gap:18px; }
+
+  .eyebrow{ text-transform:uppercase; letter-spacing:.09em; font-size:11.5px; font-weight:600; color:var(--accent); }
+  h1{ margin:.2em 0 .1em; font-size:clamp(22px,3vw,30px); font-weight:700; text-wrap:balance; }
+  .lede{ max-width:70ch; color:var(--ink-soft); font-size:14.5px; }
+  .lede code{ font-family:"IBM Plex Mono", ui-monospace, monospace; background:var(--surface-2); padding:.05em .35em; border-radius:4px; font-size:.93em; }
+
+  .card{ background:var(--surface); border:1px solid var(--border); border-radius:12px; box-shadow:var(--shadow); }
+
+  .controls-card{ padding:16px 18px; display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; }
+  button{
+    font:600 13px "IBM Plex Sans", sans-serif; border-radius:8px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--ink); padding:9px 16px; cursor:pointer;
+    transition:background .15s, border-color .15s, transform .1s, opacity .15s;
+  }
+  button:hover:not(:disabled){ border-color:var(--ink-faint); }
+  button:active:not(:disabled){ transform:translateY(1px); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.primary{ background:var(--graph); border-color:var(--graph); color:#eafaff; }
+  button.ghost{ background:transparent; }
+  .spacer{ flex:1 1 auto; }
+  .status{ font:500 12.5px "IBM Plex Mono", monospace; color:var(--ink-faint); min-height:1.4em; }
+  .status.err{ color:var(--danger); font-weight:600; }
+
+  .legend{ display:flex; flex-wrap:wrap; gap:14px 20px; padding:12px 18px; font-size:12px; color:var(--ink-soft); }
+  .legend .item{ display:flex; align-items:center; gap:6px; }
+  .legend .dot{ width:12px; height:12px; border-radius:50%; border:1.5px solid var(--border); background:var(--surface-2); flex:0 0 auto; }
+  .legend .dot.discovered{ border-color:var(--accent); border-style:dashed; background:var(--accent-soft); }
+  .legend .dot.current{ border-color:var(--accent); background:var(--accent-soft); }
+  .legend .dot.processed{ border-color:var(--graph); background:var(--graph-soft); }
+  .legend .ln{ width:18px; height:0; border-top:2px solid var(--ink-faint); }
+  .legend .ln.tree{ border-top-color:var(--graph); border-top-width:3px; }
+
+  /* ---- panels ---- */
+  .panels{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:680px){ .panels{ grid-template-columns:1fr; } }
+  .pool-card{ padding:16px 18px 18px; }
+  .pool-label{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:4px; }
+  .pool-sub{ font-size:12px; color:var(--ink-faint); margin-bottom:12px; min-height:2.6em; }
+  .pool{ display:flex; gap:8px; overflow-x:auto; padding-top:22px; padding-bottom:4px; min-height:44px; }
+  .pool-empty{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--ink-faint); padding:8px 2px; }
+  .tile{
+    position:relative; flex:0 0 auto; width:44px; height:36px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:14.5px;
+    border-radius:7px; border:1.5px solid var(--border);
+    background:var(--surface-2); color:var(--ink-soft);
+    transition:opacity .22s, transform .22s, border-color .2s, background .2s;
+  }
+  .tile.post{ border-color:var(--post); background:var(--post-soft); color:var(--post); }
+  .tile.front{ border-color:var(--accent); background:var(--accent-soft); color:var(--ink); }
+  .tile.final{ border-color:var(--success); background:var(--success-soft); color:var(--success); }
+  .tile.new{ animation:tilepulse .3s ease-out; }
+  @keyframes tilepulse{ 0%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+  .tile .ptr{
+    position:absolute; bottom:100%; left:50%; transform:translateX(-50%) rotate(180deg);
+    display:flex; flex-direction:column; align-items:center; gap:2px; opacity:0; transition:opacity .2s;
+  }
+  .tile.front .ptr{ opacity:1; }
+
+  /* ---- graph ---- */
+  .graph-card{ padding:16px 16px 10px; display:flex; flex-direction:column; align-items:center; gap:2px; }
+  .graph-title{ font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--graph); align-self:flex-start; }
+  .graph-sub{ font-size:11px; color:var(--ink-faint); font-family:"IBM Plex Mono",monospace; align-self:flex-start; margin-bottom:4px; }
+  .graph-wrap{ width:100%; max-width:560px; }
+  svg.graph{ width:100%; height:auto; display:block; }
+  .gedge{ stroke:var(--ink-faint); stroke-width:1.6; marker-end:url(#arrow); transition:stroke .22s, stroke-width .22s; }
+  .gedge.tree{ stroke:var(--graph); stroke-width:3; marker-end:url(#arrowTree); }
+  .gnode circle{ fill:var(--surface-2); stroke:var(--border); stroke-width:1.8; transition:fill .22s, stroke .22s, stroke-width .22s; }
+  .gnode.discovered circle{ stroke:var(--accent); stroke-width:2.6; stroke-dasharray:4 3; fill:var(--accent-soft); }
+  .gnode.current circle{ stroke:var(--accent); stroke-width:3; fill:var(--accent-soft); }
+  .gnode.processed circle{ stroke:var(--graph); stroke-width:2.6; fill:var(--graph-soft); }
+  .gnode text.label{ font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; fill:var(--ink); text-anchor:middle; dominant-baseline:central; pointer-events:none; }
+  .gnode text.badge{ font-family:"IBM Plex Mono",monospace; font-weight:700; font-size:10px; fill:var(--post); text-anchor:middle; pointer-events:none; }
+
+  /* ---- trace + code ---- */
+  .main{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  @media (max-width:760px){ .main{ grid-template-columns:1fr; } }
+  .log-card{ padding:16px 18px; }
+  .log-title, .code-title{ font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); margin-bottom:10px; }
+  .log{ font-family:"IBM Plex Mono",monospace; font-size:12.5px; display:flex; flex-direction:column; gap:7px; max-height:280px; overflow-y:auto; padding-right:4px; }
+  .log-entry{ display:flex; gap:8px; align-items:flex-start; line-height:1.45; }
+  .log-entry .tag{ flex:0 0 auto; margin-top:1px; width:8px; height:8px; border-radius:2px; background:var(--ink-faint); }
+  .log-entry.push .tag{ background:var(--graph); }
+  .log-entry.post .tag{ background:var(--post); }
+  .log-entry.post{ color:var(--post); font-weight:500; }
+  .log-entry.final .tag{ background:var(--success); }
+  .log-entry.final{ color:var(--success); font-weight:600; }
+  .log-entry.skip{ color:var(--ink-faint); }
+  .log-entry.err{ color:var(--danger); font-weight:600; }
+  .log-entry.err .tag{ background:var(--danger); }
+
+  .code-card{ padding:16px 18px; }
+  pre.code{ margin:0; font-family:"IBM Plex Mono",monospace; font-size:12.5px; line-height:1.75; color:var(--ink-soft); white-space:pre-wrap; }
+  .code .ln{ display:block; padding:1px 8px; border-radius:5px; transition:background .2s, color .2s; }
+  .code .ln.active{ background:var(--accent-soft); color:var(--ink); font-weight:600; }
+  .code .ln.active.postline{ background:var(--post-soft); color:var(--post); }
+
+  footer{ text-align:center; color:var(--ink-faint); font-size:12px; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div>
+    <div class="eyebrow">DA1300 / BT3051 &middot; Graphs</div>
+    <h1>Topological Sort (DFS-based)</h1>
+    <p class="lede">
+      A topological sort linearly orders the vertices of a <strong>directed acyclic graph (DAG)</strong> so
+      that every edge <code>u&rarr;v</code> has <code>u</code> appearing before <code>v</code>. The DFS-based
+      algorithm runs DFS and uses <strong>postorder processing</strong>: a vertex is pushed onto a stack only
+      after all of its outgoing edges have been fully explored. Reversing that stack at the end yields a
+      valid topological order &mdash; because a vertex is only ever marked finished <em>after</em> everything
+      it points to.
+    </p>
+  </div>
+
+  <div class="card controls-card">
+    <button id="btnRun" class="primary">Run topological sort</button>
+    <button id="btnReset" class="ghost">New DAG</button>
+    <div class="spacer"></div>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="card legend">
+    <div class="item"><span class="dot"></span> undiscovered</div>
+    <div class="item"><span class="dot discovered"></span> discovered (on stack)</div>
+    <div class="item"><span class="dot current"></span> visiting now</div>
+    <div class="item"><span class="dot processed"></span> processed (finished)</div>
+    <div class="item"><span class="ln tree"></span> DFS tree edge</div>
+    <div class="item"><span class="ln"></span> other directed edge</div>
+  </div>
+
+  <div class="card graph-card">
+    <div class="graph-title">Directed acyclic graph</div>
+    <div class="graph-sub" id="graphSub">8 vertices</div>
+    <div class="graph-wrap">
+      <svg class="graph" id="graphSvg" viewBox="0 0 520 420">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-faint)"/></marker>
+          <marker id="arrowTree" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--graph)"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <div class="panels">
+    <div class="card pool-card">
+      <div class="pool-label">Finish stack</div>
+      <div class="pool-sub">each vertex is pushed once <strong>all of its outgoing edges are explored</strong> (postorder)</div>
+      <div class="pool" id="stackPool"></div>
+    </div>
+    <div class="card pool-card">
+      <div class="pool-label">Topological order</div>
+      <div class="pool-sub">the finish stack, read top-to-bottom &mdash; i.e. <strong>reversed</strong></div>
+      <div class="pool" id="output"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="card log-card">
+      <div class="log-title">Trace</div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="card code-card">
+      <div class="code-title">topological_sort(graph)</div>
+      <pre class="code" id="pseudo"><span class="ln" data-k="initouter">stack = []; discovered = {}</span><span class="ln" data-k="outer">for each vertex s in graph: if s not discovered: dfs(s)</span><span class="ln" data-k="discover">dfs(u): discovered[u] = True</span><span class="ln" data-k="edge">  for v in adj[u]:</span><span class="ln" data-k="new">    if v not discovered: dfs(v)   # recurse</span><span class="ln" data-k="old">    else: ignore (already discovered)</span><span class="ln" data-k="post">  stack.append(u)   # POSTORDER: push after all out-edges explored</span><span class="ln" data-k="final">return reverse(stack)</span></pre>
+    </div>
+  </div>
+
+  <footer>Random DAG, 8 vertices &middot; Topological Sorting, DA1300/BT3051</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var N = 8;
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var CX = 260, CY = 200, R = 160;
+
+  var svgEl = document.getElementById("graphSvg");
+  var graphSubEl = document.getElementById("graphSub");
+  var stackEl = document.getElementById("stackPool");
+  var outputEl = document.getElementById("output");
+  var logEl = document.getElementById("log");
+  var statusEl = document.getElementById("status");
+  var btnRun = document.getElementById("btnRun");
+  var btnReset = document.getElementById("btnReset");
+  var pseudoLines = document.querySelectorAll("#pseudo .ln");
+
+  var adj = []; // directed: adj[u] = [v, ...]
+  var positions = [];
+  var nodeEls = [];
+  var edgeEls = {};
+  var callStack = [];
+  var finishStack = [];
+  var output = [];
+  var version = 0;
+  var busy = false;
+
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+  function label(i){ return String.fromCharCode(65 + i); }
+  function edgeKey(u, v){ return u + "_" + v; }
+
+  function shuffledIndices(n){
+    var arr = []; for (var i = 0; i < n; i++) arr.push(i);
+    for (var j = n - 1; j > 0; j--){
+      var k = Math.floor(Math.random() * (j + 1));
+      var t = arr[j]; arr[j] = arr[k]; arr[k] = t;
+    }
+    return arr;
+  }
+
+  function buildDAG(){
+    adj = []; for (var i = 0; i < N; i++) adj.push([]);
+    var perm = shuffledIndices(N); // perm[k] = vertex id at hidden rank k (so edges only go perm[k]->perm[l] for k<l)
+    var edgeSet = {};
+    function addEdge(u, v){
+      var k = edgeKey(u, v);
+      if (u === v || edgeSet[k]) return false;
+      edgeSet[k] = true;
+      adj[u].push(v);
+      return true;
+    }
+    for (var i = 1; i < N; i++){
+      var srcRank = Math.floor(Math.random() * i);
+      addEdge(perm[srcRank], perm[i]);
+    }
+    var extra = 4, tries = 0;
+    while (extra > 0 && tries < 60){
+      tries++;
+      var a = Math.floor(Math.random() * N), b = Math.floor(Math.random() * N);
+      if (a === b) continue;
+      var ra = perm.indexOf(a), rb = perm.indexOf(b);
+      if (ra > rb){ var t = a; a = b; b = t; }
+      else if (ra === rb) continue;
+      if (addEdge(a, b)) extra--;
+    }
+    adj.forEach(function(lst){ lst.sort(function(a, b){ return a - b; }); });
+  }
+
+  function layoutCircle(){
+    positions = [];
+    for (var i = 0; i < N; i++){
+      var angle = -Math.PI / 2 + i * (2 * Math.PI / N);
+      positions.push({ x: CX + R * Math.cos(angle), y: CY + R * Math.sin(angle) });
+    }
+  }
+
+  function renderGraphStatic(){
+    var defs = svgEl.querySelector("defs");
+    svgEl.innerHTML = "";
+    if (defs) svgEl.appendChild(defs);
+    edgeEls = {};
+    var NODE_R = 18;
+    adj.forEach(function(lst, u){
+      lst.forEach(function(v){
+        var dx = positions[v].x - positions[u].x, dy = positions[v].y - positions[u].y;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        var ux = dx / dist, uy = dy / dist;
+        var x1 = positions[u].x + ux * NODE_R, y1 = positions[u].y + uy * NODE_R;
+        var x2 = positions[v].x - ux * (NODE_R + 7), y2 = positions[v].y - uy * (NODE_R + 7);
+        var line = document.createElementNS(SVGNS, "line");
+        line.setAttribute("class", "gedge");
+        line.setAttribute("x1", x1); line.setAttribute("y1", y1);
+        line.setAttribute("x2", x2); line.setAttribute("y2", y2);
+        svgEl.appendChild(line);
+        edgeEls[edgeKey(u, v)] = line;
+      });
+    });
+    nodeEls = [];
+    for (var i = 0; i < N; i++){
+      var g = document.createElementNS(SVGNS, "g");
+      g.setAttribute("class", "gnode");
+      var circle = document.createElementNS(SVGNS, "circle");
+      circle.setAttribute("cx", positions[i].x); circle.setAttribute("cy", positions[i].y); circle.setAttribute("r", NODE_R);
+      var text = document.createElementNS(SVGNS, "text");
+      text.setAttribute("class", "label");
+      text.setAttribute("x", positions[i].x); text.setAttribute("y", positions[i].y);
+      text.textContent = label(i);
+      var badge = document.createElementNS(SVGNS, "text");
+      badge.setAttribute("class", "badge");
+      badge.setAttribute("x", positions[i].x); badge.setAttribute("y", positions[i].y + 32);
+      g.appendChild(circle); g.appendChild(text); g.appendChild(badge);
+      svgEl.appendChild(g);
+      nodeEls.push({ g: g, circle: circle, badge: badge });
+    }
+    graphSubEl.textContent = N + " vertices · " + Object.keys(edgeEls).length + " directed edges";
+  }
+
+  function setNodeState(i, state){
+    nodeEls[i].g.classList.remove("discovered", "current", "processed");
+    if (state) nodeEls[i].g.classList.add(state);
+  }
+  function setBadge(i, text){ nodeEls[i].badge.textContent = text || ""; }
+  function setEdgeClass(u, v, cls){
+    var el = edgeEls[edgeKey(u, v)];
+    if (!el) return;
+    el.setAttribute("class", "gedge" + (cls ? " " + cls : ""));
+  }
+
+  function renderTiles(container, arr, opts){
+    opts = opts || {};
+    container.innerHTML = "";
+    if (arr.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "pool-empty";
+      empty.textContent = opts.emptyText || "empty";
+      container.appendChild(empty);
+      return;
+    }
+    arr.forEach(function(v, i){
+      var tile = document.createElement("div");
+      var cls = "tile" + (opts.tileClass || "");
+      if (i === opts.activeIndex) cls += " front";
+      if (i === opts.newIndex) cls += " new";
+      tile.className = cls;
+      tile.textContent = label(v);
+      if (i === opts.activeIndex && opts.activeLabel){
+        var ptr = document.createElement("span");
+        ptr.className = "ptr";
+        ptr.innerHTML = '<svg width="12" height="8" viewBox="0 0 12 8"><polygon points="0,0 12,0 6,8" fill="currentColor" style="color:var(--accent)"/></svg><span style="font:600 9.5px \'IBM Plex Mono\',monospace;color:var(--accent)">' + opts.activeLabel + '</span>';
+        tile.appendChild(ptr);
+      }
+      container.appendChild(tile);
+    });
+  }
+
+  function renderStack(){ renderTiles(stackEl, finishStack, { activeIndex: finishStack.length ? finishStack.length - 1 : -1, activeLabel: "top", emptyText: "finish stack is empty", tileClass: " post" }); }
+  function renderOutput(){ renderTiles(outputEl, output, { newIndex: output.length - 1, emptyText: "not computed yet", tileClass: " final" }); }
+
+  function log(text, cls){
+    var row = document.createElement("div");
+    row.className = "log-entry " + (cls || "");
+    var tag = document.createElement("span"); tag.className = "tag";
+    var msg = document.createElement("span"); msg.textContent = text;
+    row.appendChild(tag); row.appendChild(msg);
+    logEl.appendChild(row);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setStatus(text, cls){ statusEl.textContent = text || ""; statusEl.className = "status" + (cls ? " " + cls : ""); }
+  function highlightCode(key, post){
+    pseudoLines.forEach(function(ln){
+      var active = ln.dataset.k === key;
+      ln.classList.toggle("active", active);
+      ln.classList.toggle("postline", active && !!post);
+    });
+  }
+  function updateButtons(){ btnRun.disabled = busy; }
+
+  async function runTopoSort(){
+    if (busy) return;
+    version++; var myVersion = version;
+    busy = true; updateButtons();
+    logEl.innerHTML = ""; setStatus("");
+    nodeEls.forEach(function(_, i){ setNodeState(i, null); setBadge(i, ""); });
+    Object.keys(edgeEls).forEach(function(k){ edgeEls[k].setAttribute("class", "gedge"); });
+    callStack = []; finishStack = []; output = [];
+    renderStack(); renderOutput();
+
+    var discovered = {};
+    var finishCounter = 0;
+    highlightCode("initouter");
+    await delay(220); if (version !== myVersion) return;
+
+    async function dfs(u){
+      if (version !== myVersion) return;
+      discovered[u] = true;
+      callStack.push(u);
+      highlightCode("discover");
+      setNodeState(u, "current");
+      setStatus("visiting " + label(u) + " …", "");
+      log("discover " + label(u), "push");
+      await delay(300); if (version !== myVersion) return;
+
+      highlightCode("edge");
+      await delay(140); if (version !== myVersion) return;
+
+      for (var i = 0; i < adj[u].length; i++){
+        var v = adj[u][i];
+        if (!discovered[v]){
+          highlightCode("new");
+          setEdgeClass(u, v, "tree");
+          log("  " + label(u) + "→" + label(v) + " → recurse into " + label(v), "push");
+          await delay(220); if (version !== myVersion) return;
+          await dfs(v);
+          if (version !== myVersion) return;
+          setNodeState(u, "current");
+          highlightCode("edge");
+        } else {
+          highlightCode("old");
+          log("  " + label(u) + "→" + label(v) + " → " + label(v) + " already discovered, ignore", "skip");
+        }
+        await delay(180); if (version !== myVersion) return;
+      }
+
+      highlightCode("post", true);
+      finishCounter++;
+      setBadge(u, "f=" + finishCounter);
+      finishStack.push(u);
+      callStack.pop();
+      renderStack();
+      log("all out-edges of " + label(u) + " explored → push onto finish stack (f=" + finishCounter + ")", "post");
+      setNodeState(u, "processed");
+      await delay(360); if (version !== myVersion) return;
+    }
+
+    for (var s = 0; s < N; s++){
+      if (!discovered[s]){
+        highlightCode("outer");
+        await delay(160); if (version !== myVersion) return;
+        await dfs(s);
+        if (version !== myVersion) return;
+      }
+    }
+
+    highlightCode("final");
+    setStatus("DFS complete — reversing the finish stack to get the topological order", "");
+    log("DFS complete over all components — reverse the finish stack:", "skip");
+    await delay(360); if (version !== myVersion) return;
+
+    for (var k = finishStack.length - 1; k >= 0; k--){
+      output.push(finishStack[k]);
+      renderOutput();
+      log("  pop " + label(finishStack[k]) + " from stack → append to topological order", "final");
+      await delay(260); if (version !== myVersion) return;
+    }
+
+    highlightCode("");
+    setStatus("Topological order: " + output.map(label).join(" → "), "");
+    log("Topological sort complete.", "skip");
+    busy = false; updateButtons();
+  }
+
+  function newDAG(){
+    version++; busy = false;
+    buildDAG(); layoutCircle(); renderGraphStatic();
+    callStack = []; finishStack = []; output = [];
+    logEl.innerHTML = ""; setStatus(""); highlightCode("");
+    renderStack(); renderOutput();
+    log("New DAG generated with " + N + " vertices.", "skip");
+    updateButtons();
+  }
+
+  btnRun.addEventListener("click", runTopoSort);
+  btnReset.addEventListener("click", newDAG);
+
+  newDAG();
+})();
+</script>
+</body>
+</html>
